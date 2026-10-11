@@ -10,7 +10,7 @@
   'use strict';
 
   // >>> COLE AQUI a URL do seu Web App (termina em /exec) <<<
-  const API_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxO0mbNhe-QPbXpxQWTA6pBkCNQ_UzJc74KaaRw5dJWh3oXvppyFoczkPlLkFBXQizZag/exec';
 
   const LS_CACHE = 'mp_cache_v1', LS_QUEUE = 'mp_queue_v1', LS_FAILED = 'mp_failed_v1';
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
