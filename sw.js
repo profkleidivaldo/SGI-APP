@@ -1,7 +1,7 @@
 /* Service worker — Ministério Pessoal. Aumente CACHE_VERSION a cada atualização do app. */
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE = 'mp-' + CACHE_VERSION;
-const APP_SHELL = ['./', './index.html', './offline.js', './manifest.json', './icon-192.png', './icon-512.png'];
+const APP_SHELL = ['./', './index.html', './offline.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(APP_SHELL)).then(() => self.skipWaiting()));
