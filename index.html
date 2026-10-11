@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Ministério Pessoal — IASD Nova Brasília</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root{
+      --bg:#F2F4F8;
+      --surface:#FFFFFF;
+      --ink:#141C2C;
+      --ink-soft:#64748B;
+      --teal:#0F4C86;
+      --teal-dark:#053067;
+      --teal-tint:#E7EEF7;
+      --gold:#B8862A;
+      --gold-tint:#F8EFDC;
+      --terracotta:#C8102E;
+      --terracotta-tint:#FBE7EA;
+      --border:#E1E6EF;
+      --radius:10px;
+      --shadow:0 1px 2px rgba(5,48,103,.08);
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; padding:0; background:var(--bg); }
+    body{ font-family:'Inter',sans-serif; color:var(--ink); font-size:13.5px; }
+    h1,h2,h3,h4{ font-family:'Poppins',sans-serif; font-weight:600; margin:0; color:var(--teal-dark); }
+    p{ margin:0; }
+    button{ font-family:'Inter',sans-serif; cursor:pointer; border:none; background:none; }
+    input,select,textarea{ font-family:'Inter',sans-serif; }
+    svg{ display:block; }
+    #app{ min-height:100vh; }
+
+    /* ---------- Topbar ---------- */
+    .topbar{
+      background:var(--teal-dark); color:#fff; padding:11px 14px;
+      position:sticky; top:0; z-index:20;
+      display:flex; align-items:center; gap:10px;
+    }
+    .hamburger{
+      width:36px; height:36px; border-radius:8px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; color:#fff;
+    }
+    .hamburger:active{ background:rgba(255,255,255,.1); }
+    .brand-compact{ display:flex; align-items:center; gap:9px; cursor:pointer; flex:1; min-width:0; }
+    .brand-mark{
+      width:28px; height:28px; border-radius:7px; flex-shrink:0; background:var(--gold);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Poppins',sans-serif; font-weight:700; color:var(--teal-dark); font-size:12px;
+    }
+    .brand-compact h1{ color:#fff; font-size:14.5px; font-weight:600; letter-spacing:.1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .current-profile{ font-size:11px; color:#A9C2DC; white-space:nowrap; flex-shrink:0; }
+
+    /* ---------- Drawer ---------- */
+    .drawer-overlay{ position:fixed; inset:0; background:rgba(5,48,103,.4); z-index:29; }
+    .drawer{
+      position:fixed; top:0; left:0; bottom:0; width:270px; max-width:82vw; background:var(--surface);
+      z-index:30; box-shadow:2px 0 20px rgba(0,0,0,.15); display:flex; flex-direction:column;
+      animation:slidein-left .17s ease;
+    }
+    @keyframes slidein-left{ from{ transform:translateX(-100%);} to{ transform:translateX(0);} }
+    .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .drawer-head span{ font-family:'Poppins',sans-serif; font-weight:600; font-size:14.5px; color:var(--teal-dark); }
+    .drawer-close{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); border-radius:7px; }
+    .drawer-close:active{ background:var(--teal-tint); }
+    .drawer-items{ padding:8px; flex:1; overflow-y:auto; }
+    .drawer-item{
+      width:100%; display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:8px;
+      font-size:13.5px; font-weight:600; color:var(--ink); text-align:left; margin-bottom:2px;
+    }
+    .drawer-item svg{ color:var(--ink-soft); flex-shrink:0; }
+    .drawer-item:active{ background:var(--teal-tint); }
+    .drawer-item.active{ background:var(--teal-tint); color:var(--teal-dark); }
+    .drawer-item.active svg{ color:var(--teal); }
+    .drawer-sep{ height:1px; background:var(--border); margin:8px 12px; }
+    .drawer-foot{ padding:12px 16px; font-size:10.5px; color:var(--ink-soft); border-top:1px solid var(--border); }
+
+    main{ padding:18px 16px 56px; max-width:1040px; margin:0 auto; }
+
+    /* ---------- Area chooser / auth ---------- */
+    .area-screen{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; gap:26px; }
+    .area-brand{ display:flex; align-items:center; gap:10px; }
+    .area-brand .brand-mark{ width:42px; height:42px; border-radius:11px; font-size:17px; }
+    .area-brand h1{ font-size:18px; }
+    .area-cards{ display:flex; flex-direction:column; gap:12px; width:100%; max-width:340px; }
+    .area-card{
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px;
+      display:flex; flex-direction:column; align-items:center; gap:7px; text-align:center; box-shadow:var(--shadow);
+    }
+    .area-card:active{ background:var(--teal-tint); }
+    .area-card .ic{ width:38px; height:38px; border-radius:10px; background:var(--teal-tint); color:var(--teal); display:flex; align-items:center; justify-content:center; }
+    .area-card h3{ font-size:14.5px; }
+    .area-card span{ font-size:11px; color:var(--ink-soft); }
+
+    .auth-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .auth-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 24px; width:100%; max-width:340px; box-shadow:var(--shadow); }
+    .auth-card h2{ font-size:16.5px; margin-bottom:14px; text-align:center; }
+
+    /* ---------- Home ---------- */
+    .hero{ margin-bottom:16px; }
+    .hero h2{ font-size:19px; }
+
+    .pipeline{ display:flex; align-items:flex-start; gap:0; margin:16px 0 22px; overflow-x:auto; padding:2px 2px 4px; }
+    .pl-node{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:92px; flex-shrink:0; }
+    .pl-circle{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+    .pl-label{ font-size:10.5px; font-weight:600; text-align:center; line-height:1.2; color:var(--ink); }
+    .pl-count{ font-size:11px; font-weight:700; color:var(--ink-soft); }
+    .pl-line{ height:1px; flex:1; min-width:20px; background:var(--border); margin-top:19px; }
+
+    .stats-strip{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:1px;
+      background:var(--border); border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden; margin-bottom:20px;
+    }
+    .stats-strip .item{ background:var(--surface); padding:11px 13px; }
+    .stats-strip .n{ font-family:'Poppins',sans-serif; font-size:19px; font-weight:700; color:var(--teal-dark); line-height:1.1; }
+    .stats-strip .l{ font-size:10.5px; color:var(--ink-soft); margin-top:2px; }
+
+    .quick-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+    .quick-card{
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px;
+      display:flex; align-items:center; gap:10px; cursor:pointer; text-align:left;
+    }
+    .quick-card:active{ background:var(--teal-tint); }
+    .quick-card .ic{ width:34px; height:34px; border-radius:8px; background:var(--teal-tint); color:var(--teal); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .quick-card h3{ font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.25; }
+
+    /* ---------- Section shell ---------- */
+    .section-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+    .section-head h2{ font-size:16.5px; }
+
+    .tabs{ display:flex; gap:2px; overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:16px; }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{ padding:8px 12px; font-size:12px; font-weight:600; color:var(--ink-soft); border-bottom:2px solid transparent; white-space:nowrap; flex-shrink:0; }
+    .tab.active{ color:var(--teal); border-color:var(--teal); }
+
+    .btn{ min-height:36px; padding:0 13px; border-radius:8px; font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+    .btn-primary{ background:var(--teal); color:#fff; }
+    .btn-primary:active{ background:var(--teal-dark); }
+    .btn-ghost{ background:transparent; color:var(--teal); border:1px solid var(--border); }
+    .btn-danger-ghost{ background:transparent; color:var(--terracotta); border:1px solid var(--border); }
+    .btn-sm{ min-height:30px; padding:0 10px; font-size:11.5px; border-radius:6px; }
+    .btn-full{ width:100%; }
+    .btn[disabled]{ opacity:.5; pointer-events:none; }
+
+    .card-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+    .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); }
+    .card h3{ font-size:14px; margin-bottom:3px; }
+    .card .meta{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+    .card-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap; gap:7px; }
+    .count-pill{ font-size:10.5px; font-weight:700; background:var(--teal-tint); color:var(--teal-dark); padding:3px 8px; border-radius:999px; }
+    .card-actions{ display:flex; gap:3px; }
+
+    .empty{ text-align:center; padding:34px 16px; color:var(--ink-soft); background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius); }
+    .empty .ic{ width:36px; height:36px; margin:0 auto 8px; color:var(--ink-soft); }
+    .empty h4{ color:var(--ink); font-size:13px; font-weight:600; font-family:'Inter',sans-serif; }
+
+    table{ width:100%; border-collapse:collapse; background:var(--surface); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+    thead th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); background:var(--teal-tint); padding:9px 12px; }
+    tbody td{ padding:10px 12px; font-size:12.5px; border-top:1px solid var(--border); }
+
+    .badge{ font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+    .badge-baptized{ background:var(--gold-tint); color:#7A5A12; }
+    .badge-interest{ background:var(--terracotta-tint); color:var(--terracotta); }
+    .badge-neutral{ background:var(--teal-tint); color:var(--teal-dark); }
+    .badge-lock-ok{ background:var(--teal-tint); color:var(--teal-dark); }
+    .badge-lock-warn{ background:var(--terracotta-tint); color:var(--terracotta); }
+
+    .row-actions{ display:flex; gap:3px; justify-content:flex-end; flex-wrap:wrap; }
+    .icon-btn{ color:var(--ink-soft); padding:6px 8px; border-radius:6px; font-size:11.5px; min-height:30px; }
+    .icon-btn:active{ background:var(--teal-tint); color:var(--teal-dark); }
+
+    select.inline-select{ padding:6px 7px; border-radius:6px; border:1px solid var(--border); font-size:11.5px; max-width:100%; }
+
+    .field{ margin-bottom:11px; }
+    .field label{ display:block; font-size:11px; font-weight:600; color:var(--ink-soft); margin-bottom:4px; }
+    .field input[type=text], .field input[type=tel], .field input[type=password], .field input[type=date], .field select, .field textarea{
+      width:100%; padding:10px 11px; border:1px solid var(--border); border-radius:8px; font-size:13.5px; color:var(--ink); background:#FBFCFD;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+    .field textarea{ resize:vertical; min-height:56px; }
+    .field .hint{ display:block; font-size:10.5px; font-weight:400; color:var(--ink-soft); margin-top:4px; }
+    .checkline{ display:flex; align-items:center; gap:9px; background:var(--teal-tint); padding:10px 12px; border-radius:8px; }
+    .checkline input{ width:16px; height:16px; flex-shrink:0; }
+    .checkline label{ font-size:12.5px; font-weight:600; color:var(--teal-dark); margin:0; }
+    .modal-sub-label{ font-size:11px; font-weight:700; color:var(--ink-soft); letter-spacing:.02em; }
+
+    /* ---------- Mapas (Leaflet) ---------- */
+    .map-box{
+      height:260px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); background:var(--teal-tint);
+      position:relative; isolation:isolate; z-index:0;
+    }
+    .map-help{ font-size:11px; color:var(--ink-soft); margin:6px 0 10px; }
+    .leaflet-popup-content{ font-family:'Inter',sans-serif; font-size:12px; }
+
+    /* ---------- Tabela de frequência (chamada) ---------- */
+    .freq-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:10px; border-radius:var(--radius); }
+    .freq-table{ border-collapse:collapse; background:var(--surface); box-shadow:var(--shadow); min-width:100%; }
+    .freq-table th, .freq-table td{ padding:8px 10px; font-size:12px; border-top:1px solid var(--border); white-space:nowrap; text-align:center; }
+    .freq-table thead th{ background:var(--teal-tint); color:var(--ink-soft); font-size:10.5px; text-transform:uppercase; letter-spacing:.02em; cursor:pointer; }
+    .freq-table thead th:hover{ color:var(--teal-dark); }
+    .freq-table td:first-child, .freq-table th:first-child{
+      text-align:left; position:sticky; left:0; background:var(--surface); font-weight:600; z-index:1;
+    }
+    .freq-table thead th:first-child{ background:var(--teal-tint); cursor:default; }
+    .freq-present{ color:var(--teal); }
+    .freq-absent{ color:var(--ink-soft); opacity:.4; }
+    .freq-table, .freq-table thead, .freq-table tbody, .freq-table tr, .freq-table td, .freq-table th{
+      display:revert !important;
+    }
+    .freq-table td::before{ content:none !important; }
+
+    /* Ícone de "observação" no cabeçalho de cada data — só aparece quando
+       o encontro tem `observacoes` preenchidas. Clicável, sem interferir no
+       clique da própria data (que abre a chamada). */
+    .freq-th-inner{ display:inline-flex; align-items:center; justify-content:center; gap:3px; }
+    .freq-th-date{ cursor:pointer; }
+    .obs-icon-btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:18px; height:18px; border-radius:5px; color:var(--gold); flex-shrink:0;
+    }
+    .obs-icon-btn:active{ background:var(--gold-tint); }
+
+    @media (max-width:680px){
+      table, thead, tbody, tr, td{ display:block; width:100%; }
+      table{ box-shadow:none; background:transparent; border-radius:0; }
+      thead{ display:none; }
+      tr{ background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:8px; padding:2px 0; box-shadow:var(--shadow); }
+      td{ border-top:none; padding:7px 13px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+      td::before{ content:attr(data-label); font-weight:600; color:var(--ink-soft); font-size:10px; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0; }
+      td:last-child{ justify-content:flex-end; }
+      td:last-child::before{ content:''; }
+    }
+
+    /* ---------- Modal ---------- */
+    .overlay{ position:fixed; inset:0; background:rgba(5,48,103,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:14px; }
+    .modal{ background:var(--surface); border-radius:14px; padding:18px; width:100%; max-width:400px; max-height:88vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,.22); }
+    .modal h3{ font-size:15px; margin-bottom:12px; }
+    .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+    @media (max-width:640px){
+      .overlay{ align-items:flex-end; padding:0; }
+      .modal{ max-width:100%; border-radius:16px 16px 0 0; max-height:85vh; animation:sheetup .2s ease; }
+      .modal-actions{ flex-direction:column-reverse; }
+      .modal-actions .btn{ width:100%; }
+      .drawer{ width:250px; }
+    }
+    @keyframes sheetup{ from{ transform:translateY(100%);} to{ transform:translateY(0);} }
+
+    /* ---------- Toast ---------- */
+    .toast-wrap{ position:fixed; bottom:14px; right:14px; left:14px; display:flex; flex-direction:column; align-items:flex-end; gap:7px; z-index:99; pointer-events:none; }
+    .toast{ background:var(--teal-dark); color:#fff; padding:10px 14px; border-radius:8px; font-size:12px; box-shadow:0 6px 20px rgba(0,0,0,.2); animation:slidein .2s ease; max-width:300px; }
+    .toast.err{ background:var(--terracotta); }
+    @keyframes slidein{ from{ transform:translateY(8px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+
+    .loading-screen{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:80px 20px; color:var(--ink-soft); gap:10px; }
+    .spinner{ width:22px; height:22px; border:3px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+
+    .notice{ background:var(--gold-tint); color:#7A5A12; font-size:11.5px; padding:9px 12px; border-radius:8px; margin-bottom:14px; }
+
+    /* ---------- Notificações (só coordenador) ---------- */
+    .notif-bell{ position:relative; width:36px; height:36px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; }
+    .notif-bell:active{ background:rgba(255,255,255,.1); }
+    .notif-badge{
+      position:absolute; top:1px; right:1px; background:var(--terracotta); color:#fff; font-size:9.5px; font-weight:700;
+      min-width:15px; height:15px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; line-height:1;
+    }
+    .notif-panel{
+      position:fixed; top:58px; right:10px; width:310px; max-width:88vw; max-height:70vh; overflow-y:auto;
+      background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 14px 36px rgba(0,0,0,.2); z-index:65;
+    }
+    .notif-panel-head{ padding:11px 14px; font-weight:700; font-size:12.5px; color:var(--teal-dark); border-bottom:1px solid var(--border); font-family:'Poppins',sans-serif; }
+    .notif-item{ padding:11px 14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:6px; }
+    .notif-item:last-child{ border-bottom:none; }
+    .notif-msg{ font-size:12px; line-height:1.4; color:var(--ink); }
+    .notif-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+    .notif-tag.novo_interessado{ color:var(--terracotta); }
+    .notif-tag.estudo_interrompido{ color:var(--gold); }
+    .notif-empty{ padding:22px 14px; text-align:center; font-size:12px; color:var(--ink-soft); }
+
+    /* ---------- Assistente de IA (chat flutuante, só coordenador) ---------- */
+    .ai-fab{
+      position:fixed; bottom:16px; right:16px; width:52px; height:52px; border-radius:50%; background:var(--teal); color:#fff;
+      display:flex; align-items:center; justify-content:center; box-shadow:0 8px 22px rgba(5,48,103,.35); z-index:65;
+    }
+    .ai-fab:active{ background:var(--teal-dark); }
+    .ai-chat{
+      position:fixed; bottom:78px; right:16px; width:325px; max-width:92vw; height:430px; max-height:72vh;
+      background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 16px 44px rgba(0,0,0,.22);
+      z-index:65; display:flex; flex-direction:column; overflow:hidden;
+    }
+    .ai-chat-head{ background:var(--teal-dark); color:#fff; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px; font-weight:700; font-family:'Poppins',sans-serif; }
+    .ai-chat-close{ color:#fff; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:6px; flex-shrink:0; }
+    .ai-chat-close:active{ background:rgba(255,255,255,.15); }
+    .ai-chat-body{ flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .ai-msg{ max-width:85%; padding:8px 11px; border-radius:12px; font-size:12px; line-height:1.45; white-space:pre-wrap; }
+    .ai-msg.user{ align-self:flex-end; background:var(--teal); color:#fff; border-bottom-right-radius:3px; }
+    .ai-msg.bot{ align-self:flex-start; background:var(--teal-tint); color:var(--ink); border-bottom-left-radius:3px; }
+    .ai-msg.typing{ align-self:flex-start; background:var(--teal-tint); color:var(--ink-soft); font-style:italic; }
+    .ai-chat-foot{ display:flex; gap:6px; padding:9px; border-top:1px solid var(--border); }
+    .ai-chat-foot input{ flex:1; padding:9px 12px; border:1px solid var(--border); border-radius:20px; font-size:12.5px; }
+    .ai-chat-foot button{ width:36px; height:36px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .ai-chat-foot button[disabled]{ opacity:.5; pointer-events:none; }
+    .ai-chat-empty{ font-size:11.5px; color:var(--ink-soft); text-align:center; padding:22px 12px; }
+
+    /* ---------- Relatório Missionário Integrado ---------- */
+    .report-toolbar{ align-items:center; }
+    .report-print-head{ display:none; }
+    .report-section-title{
+      font-size:14px; color:var(--teal-dark); margin:22px 0 10px; padding-bottom:6px;
+      border-bottom:2px solid var(--teal-tint);
+    }
+    .report-group{ margin-bottom:18px; }
+    .report-group-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px; gap:8px; flex-wrap:wrap; }
+    .report-group-head h4{ font-family:'Poppins',sans-serif; font-size:13px; color:var(--ink); margin-bottom:2px; }
+    .report-group-head .meta{ font-size:10.5px; color:var(--ink-soft); }
+    .report-grid th:nth-child(2), .report-grid td.report-total{
+      background:var(--teal-tint); color:var(--teal-dark); font-weight:700;
+    }
+    .report-stats{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
+      background:var(--border); border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden; margin:26px 0 10px;
+    }
+    .report-stats .report-stat{ background:var(--surface); padding:14px; text-align:center; }
+    .report-stats .n{ font-family:'Poppins',sans-serif; font-size:22px; font-weight:700; color:var(--teal-dark); }
+    .report-stats .l{ font-size:10.5px; color:var(--ink-soft); margin-top:3px; }
+
+    @media print{
+      .topbar, .drawer, .drawer-overlay, .ai-fab, .ai-chat, .notif-panel,
+      .toast-wrap, .report-toolbar, .report-only-screen{ display:none !important; }
+      body, html{ background:#fff !important; }
+      main{ max-width:100%; padding:0; }
+      .report-print-head{ display:block; margin-bottom:16px; }
+      .report-print-head h1{ font-size:18px; color:var(--teal-dark); }
+      .report-print-head p{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+      .report-group{ break-inside:avoid; }
+      .report-section-title{ break-after:avoid; }
+      .freq-table-wrap{ overflow:visible; }
+      .report-grid{ font-size:10px; }
+    }
+
+    @media (max-width:520px){
+      main{ padding:14px 12px 50px; }
+      .stats-strip .n{ font-size:17px; }
+      .ai-chat{ width:calc(100vw - 20px); right:10px; }
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#053067">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="offline.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+  (function(){
+    // DIRECTORY: nomes de grupos apenas (sem dados sensíveis) — carregado sempre.
+    let DIRECTORY = { pgs:[], classes:[], escolas:[], duplas:[] };
+    // DB: dados completos (com telefone e hash de senha de grupo) — só existe após login de coordenador.
+    let DB = null;
+    let coordPw = null; // mantido só em memória, nunca salvo em disco/armazenamento
+
+    // Localização padrão do mapa, caso nenhum PG ainda tenha coordenadas
+    // salvas (aproximadamente Ji-Paraná/RO).
+    const MAP_DEFAULT_CENTER = [-10.885, -61.951];
+
+    let state = {
+      loading:true,
+      area:null,           // null | 'coord' | 'registro'
+      coordStage:'idle',   // 'setup' | 'login' | 'app'
+      profile:'home', tab:null, menuOpen:false,
+      // registroStage: 'role' -> 'group' -> 'auth' (pg/classe/escola/dupla) -> 'panel'
+      registroStage:'role', registroRole:null, registroGroupId:null,
+      registroPw:null,
+      registroScoped:null, registroEncontros:null, registroFrequencia:null,
+      allPgLocations:null,
+      // Notificações e chat de IA — só existem/aparecem para o coordenador logado.
+      notifOpen:false, notificacoes:[],
+      aiChatOpen:false, aiMessages:[], aiSending:false,
+    };
+
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const todayStr = () => new Date().toISOString().slice(0,10);
+
+    // Datas são guardadas internamente em ISO (yyyy-MM-dd) — formato exigido
+    // pelos campos <input type="date"> e o mais seguro contra a "adivinhação
+    // de tipo" do Google Sheets. Para exibição em telas/tabelas, convertemos
+    // para o formato brasileiro dd/mm/aaaa (evita a data aparecer "de trás
+    // para frente" para quem lê no padrão brasileiro).
+    function fmtDateBR(iso){
+      if(!iso) return '—';
+      const parts = String(iso).split('-');
+      if(parts.length !== 3) return esc(iso);
+      return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    // Data curta (dd/mm) para caber como cabeçalho de coluna na tabela de
+    // frequência — o ano fica implícito (evita colunas largas demais).
+    function fmtDateBRshort(iso){
+      if(!iso) return '—';
+      const parts = String(iso).split('-');
+      if(parts.length !== 3) return esc(iso);
+      return parts[2] + '/' + parts[1];
+    }
+
+    // Comparação de IDs blindada contra corrupção de tipo do Google Sheets:
+    // uma célula que "parece número" ou "parece data" pode voltar da planilha
+    // como Number/Date em vez de string. Normalizamos os dois lados para
+    // string antes de comparar, em vez de usar === direto.
+    const sid = (v) => (v === null || v === undefined) ? '' : String(v);
+    const eqId = (a, b) => sid(a) !== '' && sid(a) === sid(b);
+
+    // Monta a tabela de chamada no formato "diário de classe": 1ª coluna com
+    // o nome de cada pessoa, colunas seguintes uma por encontro (data),
+    // célula marcando presente/ausente. Clicar na data executa
+    // `onHeaderClickJs(encontroId)` (normalmente abre a chamada daquele dia
+    // para editar). Usado identicamente para PGs, Classes Bíblicas, Escolas
+    // de Evangelismo E Duplas Missionárias — não há ramificação especial por
+    // tipo aqui, então todos os quatro tipos de grupo sempre recebem
+    // exatamente a mesma tabela de frequência.
+    //
+    // `onObsClickJs(encontroId)` é OPCIONAL: quando fornecido, e apenas
+    // quando aquele encontro específico tiver `observacoes` preenchidas, um
+    // pequeno ícone aparece ao lado da data. Clicar nele chama
+    // `onObsClickJs(encontroId)` (normalmente abre um modal somente leitura
+    // com o texto). Quando não fornecido (ex.: painel de registro), nenhum
+    // ícone é desenhado — o comportamento para líderes/duplas continua
+    // idêntico ao que já era.
+    function buildFrequencyTable(membros, encontros, freqList, onHeaderClickJs, onObsClickJs){
+      if(!membros || membros.length===0){
+        return `<p style="font-size:11.5px;color:var(--ink-soft)">Cadastre pessoas para começar a fazer a chamada.</p>`;
+      }
+      if(!encontros || encontros.length===0){
+        return `<p style="font-size:11.5px;color:var(--ink-soft)">Nenhum encontro registrado ainda.</p>`;
+      }
+      const ordenados = [...encontros].sort((a,b)=> (a.data < b.data ? -1 : 1));
+      const freqMap = {};
+      (freqList||[]).forEach(f=>{
+        const eId = sid(f.encontroId);
+        if(!freqMap[eId]) freqMap[eId] = {};
+        freqMap[eId][sid(f.membroId)] = f.presente;
+      });
+      return `
+        <div class="freq-table-wrap">
+          <table class="freq-table">
+            <thead><tr>
+              <th>Nome</th>
+              ${ordenados.map(e => `
+                <th title="${fmtDateBR(e.data)} — ver/editar chamada">
+                  <span class="freq-th-inner">
+                    <span class="freq-th-date" onclick="${onHeaderClickJs(e.id)}">${fmtDateBRshort(e.data)}</span>
+                    ${(e.observacoes && onObsClickJs) ? `<button type="button" class="obs-icon-btn" onclick="event.stopPropagation();${onObsClickJs(e.id)}" title="Ver observação registrada">${icon('note',12)}</button>` : ''}
+                  </span>
+                </th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${membros.map(m => `
+                <tr>
+                  <td>${esc(m.nome)}</td>
+                  ${ordenados.map(e=>{
+                    const present = freqMap[sid(e.id)] ? !!freqMap[sid(e.id)][sid(m.id)] : false;
+                    return `<td class="${present?'freq-present':'freq-absent'}">${present?icon('check',13):'–'}</td>`;
+                  }).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    // ---------- Icons ----------
+    function icon(name, size){
+      size = size || 18;
+      const paths = {
+        menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+        close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+        back: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+        home: '<path d="M4 11.5 12 4l8 7.5"/><path d="M6 10.5V20h12v-9.5"/><path d="M10 20v-5h4v5"/>',
+        groups: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c0-3 2.5-5.3 5.5-5.3s5.5 2.3 5.5 5.3"/><circle cx="17.5" cy="9" r="2.2"/><path d="M15.3 19c.2-2.2 1.8-3.9 4.2-4.2"/>',
+        outreach: '<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8.1 11l7.8-3.8"/><path d="M8.1 13l7.8 3.8"/>',
+        search: '<circle cx="10.5" cy="10.5" r="6.2"/><line x1="15" y1="15" x2="20" y2="20"/>',
+        book: '<path d="M4 5.5C6 4.3 9 4 12 5.2v14C9 18 6 18.3 4 19.5z"/><path d="M20 5.5C18 4.3 15 4 12 5.2v14c3-1.2 6-.9 8 .3z"/>',
+        graduate: '<path d="M12 5 2 9l10 4 10-4z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/>',
+        teacher: '<circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
+        handshake: '<path d="M3 12l4-4 4 3 3-3 4 4"/><path d="M3 12v4l4 3"/><path d="M21 12v4l-4 3"/><path d="M11 11l-3 3 3 3"/><path d="M13 11l3 3-3 3"/>',
+        plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+        lock: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+        edit: '<path d="M4 20l1-4 11-11 3 3-11 11z"/><path d="M14 6l3 3"/>',
+        logout: '<path d="M9 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2"/><path d="M3 12h12"/><path d="M11 8l4 4-4 4"/>',
+        key: '<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9"/><path d="M16 6l3 3"/><path d="M13 9l2 2"/>',
+        pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/>',
+        check: '<polyline points="4 12 9 17 20 6"/>',
+        bell: '<path d="M6 8a6 6 0 0 1 12 0c0 4.2 1.4 5.6 1.4 5.6H4.6S6 12.2 6 8Z"/><path d="M9.3 17a2.7 2.7 0 0 0 5.4 0"/>',
+        send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/>',
+        sparkle: '<path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/>',
+        report: '<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8.5 13h7"/><path d="M8.5 16.5h7"/><path d="M8.5 9.5h3"/>',
+        print: '<path d="M7 8V4h10v4"/><rect x="5" y="8" width="14" height="8" rx="1.4"/><path d="M7 16h10v5H7z"/>',
+        phone: '<path d="M6.5 3.5h3l1.4 4-2 1.3a11 11 0 0 0 5.3 5.3l1.3-2 4 1.4v3a1.6 1.6 0 0 1-1.7 1.6A16.3 16.3 0 0 1 4.9 5.2 1.6 1.6 0 0 1 6.5 3.5z"/>',
+        note: '<path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 3.5V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="12.2" x2="13" y2="12.2"/>',
+      };
+      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[name]||''}</svg>`;
+    }
+
+    // ---------- Bridge to Apps Script backend ----------
+    function gsRun(fnName, ...args){ return MPOffline.call(fnName, args); }
+
+    function toast(msg, isErr){
+      const wrap = document.getElementById('toast-wrap');
+      if(!wrap) return;
+      const t = document.createElement('div');
+      t.className = 'toast' + (isErr ? ' err' : '');
+      t.textContent = msg;
+      wrap.appendChild(t);
+      setTimeout(() => t.remove(), 3400);
+    }
+
+    // ================= BOOT =================
+    async function boot(){
+      state.loading = true; render();
+      try{
+        DIRECTORY = await gsRun('getGroupsDirectory');
+      }catch(err){
+        toast('Erro ao carregar: ' + (err && err.message ? err.message : err), true);
+      }
+      state.loading = false; render();
+    }
+
+    window.enterArea = async function(area){
+      state.area = area;
+      if(area === 'registro'){
+        state.registroStage = 'role'; state.registroRole = null; state.registroGroupId = null; state.registroPw = null;
+        render(); return;
+      }
+      state.coordStage = 'idle';
+      state.loading = true; render();
+      try{
+        const has = await gsRun('hasCoordinatorPassword');
+        state.coordStage = has ? 'login' : 'setup';
+      }catch(err){
+        toast('Erro: ' + (err && err.message ? err.message : err), true);
+        state.area = null;
+      }
+      state.loading = false; render();
+    };
+
+    window.backToChooser = function(){
+      state.area = null; state.coordStage = 'idle'; render();
+    };
+
+    // ================= AUTENTICAÇÃO DO COORDENADOR (senha mestre) =================
+    window.submitSetup = async function(){
+      const pw = document.getElementById('f-pw').value;
+      const pw2 = document.getElementById('f-pw2').value;
+      if(pw.length < 4){ toast('A senha deve ter ao menos 4 caracteres.', true); return; }
+      if(pw !== pw2){ toast('As senhas não coincidem.', true); return; }
+      try{
+        await gsRun('setupCoordinatorPassword', pw);
+        coordPw = pw;
+        await enterCoordApp();
+      }catch(err){ toast(err.message || 'Erro ao criar senha.', true); }
+    };
+
+    window.submitLogin = async function(){
+      const pw = document.getElementById('f-pw').value;
+      try{
+        const ok = await gsRun('checkCoordinatorPassword', pw);
+        if(!ok){ toast('Senha incorreta.', true); return; }
+        coordPw = pw;
+        await enterCoordApp();
+      }catch(err){ toast(err.message || 'Erro ao entrar.', true); }
+    };
+
+    async function enterCoordApp(){
+      state.coordStage = 'app';
+      state.loading = true; render();
+      try{
+        // Uma única chamada ao servidor: getCoordinatorBootData já traz os
+        // dados completos (equivalente a getAllData) E as notificações
+        // pendentes (equivalente a getNotificacoesPendentes) juntos,
+        // reaproveitando leituras internamente no servidor — antes eram
+        // duas chamadas separadas (dois "round trips" completos ao Apps
+        // Script) só para abrir o painel.
+        const boot = await gsRun('getCoordinatorBootData', coordPw);
+        DB = boot.db;
+        DB.encontros = DB.encontros || [];
+        DB.frequencia = DB.frequencia || [];
+        state.notificacoes = boot.notificacoesPendentes || [];
+      }catch(err){
+        toast('Entrou, mas falhou ao carregar os dados: ' + (err && err.message ? err.message : err), true);
+        state.coordStage = 'login'; coordPw = null;
+        state.loading = false; render();
+        return;
+      }
+      state.loading = false; render();
+    }
+
+    window.logoutCoord = function(){
+      coordPw = null; DB = null;
+      state.area = null; state.coordStage = 'idle';
+      state.profile = 'home'; state.tab = null; state.menuOpen = false;
+      state.notifOpen = false; state.notificacoes = [];
+      state.aiChatOpen = false; state.aiMessages = []; state.aiSending = false;
+      render();
+    };
+
+    window.openChangePasswordModal = function(){
+      openModal(`
+        <h3>Alterar senha mestre</h3>
+        <div class="field"><label>Senha atual</label><input type="password" id="f-old"></div>
+        <div class="field"><label>Nova senha</label><input type="password" id="f-new"></div>
+        <div class="field"><label>Confirmar nova senha</label><input type="password" id="f-new2"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="submitChangePassword()">Salvar</button>
+        </div>
+      `);
+    };
+    window.submitChangePassword = async function(){
+      const oldPw = document.getElementById('f-old').value;
+      const newPw = document.getElementById('f-new').value;
+      const newPw2 = document.getElementById('f-new2').value;
+      if(newPw.length < 4){ toast('Nova senha muito curta.', true); return; }
+      if(newPw !== newPw2){ toast('As senhas não coincidem.', true); return; }
+      try{
+        await gsRun('changeCoordinatorPassword', oldPw, newPw);
+        coordPw = newPw;
+        closeModal();
+        toast('Senha alterada.');
+      }catch(err){ toast(err.message || 'Erro ao alterar senha.', true); }
+    };
+
+    async function persist(key){
+      try{
+        const ok = await gsRun('saveSheetData', key, DB[key], coordPw);
+        if(!ok) toast('Não foi possível salvar.', true);
+      }catch(err){
+        toast('Erro ao salvar: ' + (err && err.message ? err.message : ''), true);
+      }
+    }
+
+    function go(profile, tab){ state.profile = profile; state.tab = tab || null; state.menuOpen = false; render(); window.scrollTo(0,0); }
+    window.go = go;
+    window.toggleMenu = function(){ state.menuOpen = !state.menuOpen; render(); };
+
+    // ---------- Modal ----------
+    function openModal(html){
+      closeModal();
+      const ov = document.createElement('div');
+      ov.className = 'overlay'; ov.id = 'modal-overlay';
+      ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+      ov.addEventListener('mousedown', e => { if(e.target === ov) closeModal(); });
+      document.body.appendChild(ov);
+    }
+    function closeModal(){ const ov = document.getElementById('modal-overlay'); if(ov) ov.remove(); }
+    window.closeModal = closeModal;
+
+    // Modal somente leitura para mostrar uma observação registrada (chamada
+    // de PG/Classe/Escola ou visita de Dupla). Não editável por aqui — só
+    // exibe o texto que o líder/instrutor/dupla já escreveu no Painel de
+    // Registro ao registrar o encontro.
+    function showObsModal(titulo, texto){
+      openModal(`
+        <h3>${icon('note',15)} Observação</h3>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:10px">${esc(titulo)}</p>
+        <p style="font-size:13px;line-height:1.5;white-space:pre-wrap;background:var(--teal-tint);padding:12px;border-radius:8px">${esc(texto)}</p>
+        <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+      `);
+    }
+    window.viewObsEncontro = function(tipo, grupoId, encontroId){
+      const e = (DB.encontros||[]).find(x=>eqId(x.id, encontroId));
+      if(!e || !e.observacoes) return;
+      showObsModal((tipo==='dupla'?'Visita':'Encontro') + ' — ' + fmtDateBR(e.data), e.observacoes);
+    };
+
+    // Mesma ideia, para a observação de uma PESSOA (interessado/membro) —
+    // esse campo já existia (editável em "Editar interessado"/"Editar
+    // membro"), mas até agora nenhuma listagem mostrava que ele tinha
+    // conteúdo. É uma fonte rica de contexto sobre o interessado (o que já
+    // foi conversado, dificuldades, pedidos de oração etc.), então vale
+    // aparecer em toda lista onde a pessoa é exibida.
+    window.viewObsMembro = function(memberId){
+      const m = (DB.membros||[]).find(x=>eqId(x.id, memberId));
+      if(!m || !m.observacoes) return;
+      showObsModal('Observação — ' + m.nome, m.observacoes);
+    };
+    // Ícone pequeno para colocar ao lado do nome em qualquer listagem de
+    // pessoa. Só desenha algo quando há texto de observação registrado.
+    function memberObsIconHtml(m){
+      if(!m || !m.observacoes) return '';
+      return ` <button type="button" class="obs-icon-btn" onclick="viewObsMembro('${m.id}')" title="Ver observação registrada">${icon('note',12)}</button>`;
+    }
+
+    // ================= DERIVED HELPERS (coordenador) =================
+    // Retorna as pessoas de um grupo. Para pg/classe/escola, o vínculo é via
+    // origem+grupoId; para dupla, o vínculo é via duplaId (interessados
+    // podem vir de qualquer origem, ou avulsos, e são atribuídos a uma dupla
+    // separadamente).
+    function membrosDe(tipo, grupoId){
+      if(tipo === 'dupla') return DB.membros.filter(m => eqId(m.duplaId, grupoId));
+      return DB.membros.filter(m => m.origem===tipo && eqId(m.grupoId, grupoId));
+    }
+    function naoBatizados(){ return DB.membros.filter(m => !m.batizado); }
+    function batizados(){ return DB.membros.filter(m => m.batizado); }
+    function origemLabel(m){
+      if(m.origem==='pg'){ const g=DB.pgs.find(x=>eqId(x.id, m.grupoId)); return g ? 'PG · '+g.nome : 'PG'; }
+      if(m.origem==='classe'){ const g=DB.classes.find(x=>eqId(x.id, m.grupoId)); return g ? 'Classe · '+g.nome : 'Classe Bíblica'; }
+      if(m.origem==='escola'){ const g=DB.escolas.find(x=>eqId(x.id, m.grupoId)); return g ? 'Escola · '+g.nome : 'Escola de Evangelismo'; }
+      return 'Sem grupo';
+    }
+    function professoresDe(area, grupoId){ return DB.professores.filter(p => p.area===area && (!grupoId || eqId(p.grupoId, grupoId))); }
+
+    const PROFILES = [
+      {id:'home', label:'Início', ic:'home'},
+      {id:'pgs', label:'Coord. de PGs', ic:'groups'},
+      {id:'ministerio', label:'Coord. Ministério Pessoal', ic:'outreach'},
+      {id:'interessados', label:'Coord. de Interessados', ic:'search'},
+      {id:'relatorio', label:'Relatório Missionário', ic:'report'},
+    ];
+
+    // ================= RENDER ROOT =================
+    function render(){
+      renderInner();
+      setTimeout(afterRenderHook, 0);
+    }
+
+    function afterRenderHook(){
+      if(state.area==='registro' && state.registroStage==='group' && state.registroRole==='pg'){
+        initAllPgsMap('map-all-pgs', state.allPgLocations);
+      }
+      if(state.area==='registro' && state.registroStage==='panel' && state.registroRole==='pg'){
+        initMyPgMap();
+      }
+      if(state.area==='coord' && state.coordStage==='app' && state.profile==='pgs'){
+        initAllPgsMap('map-coord-pgs', DB.pgs);
+      }
+    }
+
+    function initAllPgsMap(divId, list){
+      if(typeof L === 'undefined') return;
+      const div = document.getElementById(divId);
+      if(!div || div._leaflet_id) return;
+      const m = L.map(div).setView(MAP_DEFAULT_CENTER, 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19
+      }).addTo(m);
+      const pts = [];
+      (list||[]).forEach(g=>{
+        if(g.lat!=null && g.lng!=null){
+          L.marker([g.lat, g.lng]).addTo(m)
+            .bindPopup('<b>'+esc(g.nome)+'</b><br>'+esc(g.lider||'')+(g.dia?'<br>'+esc(g.dia):'')+(g.local?'<br>'+esc(g.local):''));
+          pts.push([g.lat, g.lng]);
+        }
+      });
+      if(pts.length) m.fitBounds(pts, {maxZoom:14, padding:[20,20]});
+      setTimeout(()=>m.invalidateSize(), 60);
+    }
+
+    function renderInner(){
+      const app = document.getElementById('app');
+      if(state.loading){ app.innerHTML = loadingScreen() + toastWrap(); return; }
+      if(!state.area){ app.innerHTML = areaChooser() + toastWrap(); return; }
+      if(state.area === 'coord'){
+        if(state.coordStage === 'setup'){ app.innerHTML = setupScreen() + toastWrap(); return; }
+        if(state.coordStage === 'login'){ app.innerHTML = loginScreen() + toastWrap(); return; }
+        // Notificações e o chat de IA só existem aqui — no painel logado do
+        // coordenador. Em nenhuma outra tela (nem no Painel de Registro)
+        // esses widgets são renderizados.
+        app.innerHTML = `${topbar()}${state.menuOpen?drawer():''}<main>${body()}</main>${aiWidget()}${toastWrap()}`;
+        return;
+      }
+      app.innerHTML = `${registroTopbar()}<main>${registroBody()}</main>${toastWrap()}`;
+    }
+
+    function toastWrap(){ return `<div class="toast-wrap" id="toast-wrap"></div>`; }
+    function loadingScreen(){ return `<div class="loading-screen"><div class="spinner"></div><p>Carregando…</p></div>`; }
+
+    function areaChooser(){
+      return `
+        <div class="area-screen">
+          <div class="area-brand"><div class="brand-mark">NB</div><h1>Ministério Pessoal</h1></div>
+          <div class="area-cards">
+            <button class="area-card" onclick="enterArea('coord')">
+              <div class="ic">${icon('lock',20)}</div>
+              <h3>Painel dos Coordenadores</h3>
+              <span>Acesso protegido por senha mestre</span>
+            </button>
+            <button class="area-card" onclick="enterArea('registro')">
+              <div class="ic">${icon('edit',20)}</div>
+              <h3>Painel de Registro</h3>
+              <span>Líderes, instrutores e duplas — cada grupo com sua senha</span>
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function setupScreen(){
+      return `
+        <div class="auth-screen"><div class="auth-card">
+          <h2>Criar senha mestre do coordenador</h2>
+          <div class="field"><label>Nova senha</label><input type="password" id="f-pw" placeholder="Mínimo 4 caracteres"></div>
+          <div class="field"><label>Confirmar senha</label><input type="password" id="f-pw2"></div>
+          <button class="btn btn-primary btn-full" onclick="submitSetup()">Criar e entrar</button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="backToChooser()">← Voltar</button>
+        </div></div>`;
+    }
+
+    function loginScreen(){
+      return `
+        <div class="auth-screen"><div class="auth-card">
+          <h2>Painel dos Coordenadores</h2>
+          <div class="field"><label>Senha mestre</label><input type="password" id="f-pw" onkeydown="if(event.key==='Enter')submitLogin()"></div>
+          <button class="btn btn-primary btn-full" onclick="submitLogin()">Entrar</button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="backToChooser()">← Voltar</button>
+        </div></div>`;
+    }
+
+    function topbar(){
+      const current = PROFILES.find(p=>p.id===state.profile);
+      const unread = (state.notificacoes||[]).length;
+      return `
+        <div class="topbar">
+          <button class="hamburger" onclick="toggleMenu()">${icon('menu',20)}</button>
+          <div class="brand-compact" onclick="go('home')">
+            <div class="brand-mark">NB</div>
+            <h1>Ministério Pessoal</h1>
+          </div>
+          <span class="current-profile">${current && current.id!=='home' ? esc(current.label) : ''}</span>
+          <button class="notif-bell" onclick="toggleNotifPanel()" title="Notificações">
+            ${icon('bell',18)}
+            ${unread>0 ? `<span class="notif-badge">${unread>9?'9+':unread}</span>` : ''}
+          </button>
+        </div>
+        ${state.notifOpen ? notifPanel() : ''}`;
+    }
+
+    // ---------- Notificações ----------
+    function notifPanel(){
+      const list = state.notificacoes || [];
+      const tagLabel = { novo_interessado:'Novo interessado', estudo_interrompido:'Acompanhamento parado' };
+      return `
+        <div class="notif-panel">
+          <div class="notif-panel-head">Notificações</div>
+          ${list.length===0 ? '<div class="notif-empty">Nenhuma notificação pendente. 🎉</div>' :
+            list.map(n=>`
+              <div class="notif-item">
+                <span class="notif-tag ${esc(n.tipo)}">${tagLabel[n.tipo] || 'Aviso'}</span>
+                <span class="notif-msg">${esc(n.mensagem)}</span>
+                <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="dismissNotificacao('${n.id}')">Marcar como lida</button>
+              </div>`).join('')}
+        </div>`;
+    }
+    window.toggleNotifPanel = function(){ state.notifOpen = !state.notifOpen; render(); };
+    window.dismissNotificacao = async function(id){
+      try{
+        await gsRun('marcarNotificacaoLida', id, coordPw);
+        state.notificacoes = (state.notificacoes||[]).filter(n=>!eqId(n.id, id));
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    // ---------- Assistente de IA (Groq) ----------
+    function aiWidget(){
+      return `
+        ${state.aiChatOpen ? aiChatPanel() : ''}
+        <button class="ai-fab" onclick="toggleAiChat()" title="Assistente de dados (IA)">${icon(state.aiChatOpen?'close':'sparkle',22)}</button>
+      `;
+    }
+    function aiChatPanel(){
+      const msgs = state.aiMessages || [];
+      return `
+        <div class="ai-chat">
+          <div class="ai-chat-head">
+            <span>Assistente de dados</span>
+            <button class="ai-chat-close" onclick="toggleAiChat()">${icon('close',15)}</button>
+          </div>
+          <div class="ai-chat-body" id="ai-chat-body">
+            ${msgs.length===0 ? '<div class="ai-chat-empty">Pergunte sobre os dados do sistema — quantos interessados, batismos, PGs, notificações pendentes, etc.</div>' :
+              msgs.map(m=>`<div class="ai-msg ${m.role}">${esc(m.text)}</div>`).join('')}
+            ${state.aiSending ? '<div class="ai-msg typing">Digitando…</div>' : ''}
+          </div>
+          <div class="ai-chat-foot">
+            <input type="text" id="f-ai-input" placeholder="Pergunte algo…" onkeydown="if(event.key==='Enter')sendAiMessage()" ${state.aiSending?'disabled':''}>
+            <button onclick="sendAiMessage()" ${state.aiSending?'disabled':''}>${icon('send',16)}</button>
+          </div>
+        </div>`;
+    }
+    window.toggleAiChat = function(){ state.aiChatOpen = !state.aiChatOpen; render(); scrollAiChatToBottom(); };
+    window.sendAiMessage = async function(){
+      if(state.aiSending) return;
+      const input = document.getElementById('f-ai-input');
+      const text = input ? input.value.trim() : '';
+      if(!text) return;
+      state.aiMessages = state.aiMessages || [];
+      state.aiMessages.push({ role:'user', text });
+      state.aiSending = true;
+      render(); scrollAiChatToBottom();
+      try{
+        const resposta = await gsRun('askGroq', text, coordPw);
+        state.aiMessages.push({ role:'bot', text: resposta || '(sem resposta)' });
+      }catch(err){
+        state.aiMessages.push({ role:'bot', text: 'Erro ao consultar a IA: ' + (err && err.message ? err.message : 'tente novamente em instantes.') });
+      }
+      state.aiSending = false;
+      render(); scrollAiChatToBottom();
+    };
+    function scrollAiChatToBottom(){
+      setTimeout(()=>{
+        const el = document.getElementById('ai-chat-body');
+        if(el) el.scrollTop = el.scrollHeight;
+      }, 30);
+    }
+
+    function drawer(){
+      return `
+        <div class="drawer-overlay" onclick="toggleMenu()"></div>
+        <nav class="drawer">
+          <div class="drawer-head"><span>Menu</span><button class="drawer-close" onclick="toggleMenu()">${icon('close',18)}</button></div>
+          <div class="drawer-items">
+            ${PROFILES.map(p => `
+              <button class="drawer-item ${state.profile===p.id?'active':''}" onclick="go('${p.id}')">
+                ${icon(p.ic,18)}<span>${p.label}</span>
+              </button>`).join('')}
+            <div class="drawer-sep"></div>
+            <button class="drawer-item" onclick="closeModal();toggleMenu();openChangePasswordModal()">${icon('key',18)}<span>Alterar senha mestre</span></button>
+            <button class="drawer-item" onclick="logoutCoord()">${icon('logout',18)}<span>Sair</span></button>
+          </div>
+          <div class="drawer-foot">IASD Nova Brasília</div>
+        </nav>`;
+    }
+
+    function body(){
+      if(state.profile==='pgs') return viewPGs();
+      if(state.profile==='interessados') return viewInteressados();
+      if(state.profile==='ministerio') return viewMinisterio();
+      if(state.profile==='relatorio') return viewRelatorio();
+      return viewHome();
+    }
+
+    function viewHome(){
+      const totalMembros = DB.membros.length;
+      const totalBatizados = batizados().length;
+      const totalInteressados = naoBatizados().length;
+      const totalPgs = DB.pgs.length;
+      const totalDuplas = DB.duplas.length;
+
+      return `
+        <div class="hero"><h2>Painel geral</h2></div>
+
+        <div class="pipeline">
+          <div class="pl-node">
+            <div class="pl-circle" style="background:var(--teal-tint);color:var(--teal-dark)">${icon('groups',18)}</div>
+            <div class="pl-label">Grupos</div>
+            <div class="pl-count">${totalPgs + DB.classes.length + DB.escolas.length}</div>
+          </div>
+          <div class="pl-line"></div>
+          <div class="pl-node">
+            <div class="pl-circle" style="background:var(--terracotta-tint);color:var(--terracotta)">${icon('search',18)}</div>
+            <div class="pl-label">Interessados</div>
+            <div class="pl-count">${totalInteressados}</div>
+          </div>
+          <div class="pl-line"></div>
+          <div class="pl-node">
+            <div class="pl-circle" style="background:var(--gold-tint);color:#7A5A12">${icon('outreach',18)}</div>
+            <div class="pl-label">Duplas</div>
+            <div class="pl-count">${totalDuplas}</div>
+          </div>
+          <div class="pl-line"></div>
+          <div class="pl-node">
+            <div class="pl-circle" style="background:var(--teal-dark);color:#fff">${icon('graduate',18)}</div>
+            <div class="pl-label">Batismo</div>
+            <div class="pl-count">${totalBatizados}</div>
+          </div>
+        </div>
+
+        <div class="stats-strip">
+          <div class="item"><div class="n">${totalMembros}</div><div class="l">Pessoas</div></div>
+          <div class="item"><div class="n">${totalBatizados}</div><div class="l">Batizados</div></div>
+          <div class="item"><div class="n">${totalInteressados}</div><div class="l">Interessados</div></div>
+          <div class="item"><div class="n">${totalPgs}</div><div class="l">PGs</div></div>
+          <div class="item"><div class="n">${DB.classes.length}</div><div class="l">Classes</div></div>
+          <div class="item"><div class="n">${DB.escolas.length}</div><div class="l">Escola Evang.</div></div>
+          <div class="item"><div class="n">${totalDuplas}</div><div class="l">Duplas</div></div>
+          <div class="item"><div class="n">${DB.professores.length}</div><div class="l">Professores</div></div>
+        </div>
+
+        <div class="quick-grid">
+          <button class="quick-card" onclick="go('pgs')"><div class="ic">${icon('groups',18)}</div><h3>Coordenador de PGs</h3></button>
+          <button class="quick-card" onclick="go('ministerio')"><div class="ic">${icon('outreach',18)}</div><h3>Coord. Ministério Pessoal</h3></button>
+          <button class="quick-card" onclick="go('interessados')"><div class="ic">${icon('search',18)}</div><h3>Coord. de Interessados</h3></button>
+        </div>
+      `;
+    }
+
+    function viewPGs(){
+      return `
+        <div class="section-head"><h2>Pequenos Grupos</h2></div>
+        <div class="map-help">Mapa com a localização de todos os PGs (atualizada pelos próprios líderes no Painel de Registro).</div>
+        <div id="map-coord-pgs" class="map-box" style="margin-bottom:18px"></div>
+        ${groupListSection('pg', DB.pgs, {
+          icon:'groups', addLabel:'Novo PG',
+          labels:{nome:'Nome do PG', lider:'Líder', dia:'Dia e horário', local:'Local de encontro'}
+        })}
+      `;
+    }
+
+    function groupListSection(tipo, list, cfg){
+      const addBtn = `<button class="btn btn-primary" onclick="openGroupForm('${tipo}')">${icon('plus',15)} ${cfg.addLabel}</button>`;
+      if(list.length===0){
+        return `
+          <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+          <div class="empty"><div class="ic">${icon(cfg.icon,32)}</div><h4>Nenhum registro ainda</h4></div>`;
+      }
+      return `
+        <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+        <div class="card-grid">
+          ${list.map(g => {
+            const membros = membrosDe(tipo, g.id);
+            const nb = membros.filter(m=>!m.batizado).length;
+            const hasLoc = (tipo==='pg' && g.lat && g.lng);
+            return `
+            <div class="card">
+              <h3>${esc(g.nome)}</h3>
+              <div class="meta"><strong>${esc(g.lider||'—')}</strong>${g.liderTelefone ? ' · '+icon('phone',11)+' '+esc(g.liderTelefone) : ''}</div>
+              <div class="meta">${esc(g.dia||'—')} · ${esc(g.local||'—')}</div>
+              ${tipo==='pg' ? `<div class="meta">${hasLoc? icon('pin',12)+' localização no mapa' : 'sem localização registrada ainda'}</div>` : ''}
+              <div class="meta" style="margin-top:6px">
+                <span class="badge ${g.senha ? 'badge-lock-ok' : 'badge-lock-warn'}">${icon('lock',11)} ${g.senha ? 'Senha configurada' : 'Sem senha — Registro bloqueado'}</span>
+              </div>
+              <div class="card-foot">
+                <span class="count-pill">${membros.length} membro${membros.length===1?'':'s'}${nb?' · '+nb+' interess.':''}</span>
+                <div class="card-actions">
+                  <button class="icon-btn" onclick="openGroupForm('${tipo}','${g.id}')">Editar</button>
+                  <button class="icon-btn" onclick="deleteGroup('${tipo}','${g.id}')">Excluir</button>
+                </div>
+              </div>
+              <div style="margin-top:9px">
+                <button class="btn btn-ghost btn-sm btn-full" onclick="openGroupMembers('${tipo}','${g.id}')">Ver membros →</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    window.openGroupForm = function(tipo, id){
+      const listMap = {pg:DB.pgs, classe:DB.classes, escola:DB.escolas};
+      const list = listMap[tipo];
+      const item = id ? list.find(x=>eqId(x.id, id)) : null;
+      const labels = tipo==='pg'
+        ? {nome:'Nome do PG', lider:'Líder', dia:'Dia e horário', local:'Local de encontro'}
+        : tipo==='classe'
+        ? {nome:'Nome da classe', lider:'Instrutor responsável', dia:'Dia e horário', local:'Local'}
+        : {nome:'Nome da turma', lider:'Coordenador da turma', dia:'Dia e horário', local:'Local'};
+
+      openModal(`
+        <h3>${item?'Editar registro':'Novo registro'}</h3>
+        <div class="field"><label>${labels.nome}</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>${labels.lider}</label><input type="text" id="f-lider" value="${item?esc(item.lider||''):''}"></div>
+        <div class="field"><label>Telefone do ${labels.lider.toLowerCase()}</label><input type="tel" id="f-lider-tel" value="${item?esc(item.liderTelefone||''):''}" placeholder="(69) 9xxxx-xxxx"></div>
+        <div class="field"><label>${labels.dia}</label><input type="text" id="f-dia" value="${item?esc(item.dia||''):''}" placeholder="Ex: Quinta, 19h30"></div>
+        <div class="field"><label>${labels.local}</label><input type="text" id="f-local" value="${item?esc(item.local||''):''}"></div>
+        <div class="field">
+          <label>Senha de acesso do grupo${item?' <span style="font-weight:400">(deixe em branco para manter a atual)</span>':''}</label>
+          <input type="password" id="f-senha" placeholder="${item ? (item.senha?'••••••• já configurada':'ainda não configurada — defina uma') : 'mínimo 4 caracteres'}">
+          <span class="hint">Essa é a senha que o líder/instrutor usará no Painel de Registro para fazer a chamada e cadastrar membros deste grupo.</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveGroup('${tipo}','${id||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.saveGroup = async function(tipo, id){
+      const listMap = {pg:'pgs', classe:'classes', escola:'escolas'};
+      const key = listMap[tipo];
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe um nome.', true); return; }
+      const pwRaw = document.getElementById('f-senha').value.trim();
+      if(!id && !pwRaw){ toast('Defina uma senha de acesso para este grupo — ela será usada pelo líder/instrutor no Painel de Registro.', true); return; }
+      const data = {
+        nome,
+        lider: document.getElementById('f-lider').value.trim(),
+        liderTelefone: document.getElementById('f-lider-tel').value.trim(),
+        dia: document.getElementById('f-dia').value.trim(),
+        local: document.getElementById('f-local').value.trim(),
+      };
+      if(pwRaw){
+        try{ data.senha = await gsRun('hashGroupPassword', pwRaw); }
+        catch(err){ toast(err.message || 'Senha inválida (mínimo 4 caracteres).', true); return; }
+      }
+      if(id){ Object.assign(DB[key].find(x=>eqId(x.id, id)), data); }
+      else { DB[key].push({ id: uid(), ...data }); }
+      persist(key);
+      closeModal();
+      toast('Salvo.');
+      render();
+    };
+
+    window.deleteGroup = function(tipo, id){
+      if(!confirm('Excluir este registro? Os membros vinculados ficarão sem grupo.')) return;
+      const listMap = {pg:'pgs', classe:'classes', escola:'escolas'};
+      const key = listMap[tipo];
+      DB[key] = DB[key].filter(x=>!eqId(x.id, id));
+      DB.membros.forEach(m => { if(m.origem===tipo && eqId(m.grupoId, id)){ m.grupoId=null; m.origem='avulso'; } });
+      const removedEncontroIds = (DB.encontros||[]).filter(e=>e.tipo===tipo && eqId(e.grupoId, id)).map(e=>e.id);
+      DB.encontros = (DB.encontros||[]).filter(e=>!(e.tipo===tipo && eqId(e.grupoId, id)));
+      DB.frequencia = (DB.frequencia||[]).filter(f=>!removedEncontroIds.some(rid=>eqId(f.encontroId, rid)));
+      persist(key); persist('membros'); persist('encontros'); persist('frequencia');
+      toast('Excluído.');
+      render();
+    };
+
+    window.openGroupMembers = function(tipo, grupoId){
+      const listMap = {pg:DB.pgs, classe:DB.classes, escola:DB.escolas};
+      const g = listMap[tipo].find(x=>eqId(x.id, grupoId));
+      const membros = membrosDe(tipo, grupoId);
+      const profs = professoresDe(tipo, grupoId);
+      openModal(`
+        <h3>${esc(g.nome)}</h3>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:13px">${esc(g.lider||'')}${g.liderTelefone?' · '+icon('phone',10)+' '+esc(g.liderTelefone):''} ${g.dia?'· '+esc(g.dia):''}</p>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+          <span class="modal-sub-label">PROFESSORES</span>
+          <button class="btn btn-ghost btn-sm" onclick="openProfessorForm('${tipo}','${grupoId}')">+ Professor</button>
+        </div>
+        ${profs.length===0 ? '<p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:13px">Nenhum.</p>' :
+          `<div style="margin-bottom:13px">${profs.map(p=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+              <div>
+                <div>${esc(p.nome)}</div>
+                <div style="font-size:10.5px;color:var(--ink-soft)">${esc(p.telefone||'—')}</div>
+              </div>
+              <button class="icon-btn" onclick="deleteProfessor('${p.id}')">Remover</button>
+            </div>`).join('')}</div>`
+        }
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+          <span class="modal-sub-label">MEMBROS (${membros.length})</span>
+          <button class="btn btn-primary btn-sm" onclick="openMemberForm('${tipo}','${grupoId}')">+ Membro</button>
+        </div>
+        ${membros.length===0 ? '<p style="font-size:11.5px;color:var(--ink-soft)">Nenhum.</p>' :
+          `<div>${membros.map(m=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:8px">
+              <div>
+                <div style="font-size:12.5px;font-weight:600">${esc(m.nome)}${memberObsIconHtml(m)}</div>
+                <div style="font-size:10.5px;color:var(--ink-soft)">${esc(m.telefone||'—')}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+                <span class="badge ${m.batizado?'badge-baptized':'badge-interest'}">${m.batizado?'Batizado':'Interessado'}</span>
+                <button class="icon-btn" onclick="openMemberForm('${tipo}','${grupoId}','${m.id}')">Editar</button>
+              </div>
+            </div>`).join('')}</div>`
+        }
+        ${encontrosBlockHtml(tipo, grupoId, membros)}
+        <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+      `);
+    };
+
+    window.openMemberForm = function(tipo, grupoId, memberId){
+      const item = memberId ? DB.membros.find(m=>eqId(m.id, memberId)) : null;
+      openModal(`
+        <h3>${item?'Editar membro':'Novo membro'}</h3>
+        <div class="field"><label>Nome completo</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>Telefone</label><input type="tel" id="f-tel" value="${item?esc(item.telefone||''):''}"></div>
+        <div class="field checkline">
+          <input type="checkbox" id="f-batizado" ${item&&item.batizado?'checked':''}>
+          <label for="f-batizado">Já é batizado(a)</label>
+        </div>
+        <div class="field"><label>Observações</label><textarea id="f-obs" placeholder="Ex: pediu oração pela família, prefere estudar à noite, já leu parte de Mateus...">${item?esc(item.observacoes||''):''}</textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveMember('${tipo}','${grupoId}','${memberId||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.saveMember = function(tipo, grupoId, memberId){
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe o nome do membro.', true); return; }
+      const data = {
+        nome,
+        telefone: document.getElementById('f-tel').value.trim(),
+        batizado: document.getElementById('f-batizado').checked,
+        observacoes: document.getElementById('f-obs').value.trim(),
+      };
+      if(memberId){
+        const m = DB.membros.find(x=>eqId(x.id, memberId));
+        Object.assign(m, data);
+        if(data.batizado && !m.dataBatismo) m.dataBatismo = todayStr();
+        if(!data.batizado) m.dataBatismo = null;
+      } else {
+        DB.membros.push({
+          id: uid(), origem: tipo, grupoId: grupoId || null, duplaId: null,
+          dataBatismo: data.batizado ? todayStr() : null,
+          observacoes:'', ...data
+        });
+      }
+      persist('membros');
+      closeModal();
+      toast('Membro salvo.');
+      if(grupoId) openGroupMembers(tipo, grupoId); else render();
+    };
+
+    // Bloco de "chamada" (encontros + frequência), reutilizado por PG,
+    // Classe Bíblica, Escola de Evangelismo E Dupla Missionária — sempre a
+    // mesma tabela de frequência (buildFrequencyTable), sem exceção por tipo.
+    // O quinto argumento passado a buildFrequencyTable liga o ícone de
+    // observação: aparece apenas quando aquele encontro específico já tem
+    // texto registrado (pelo líder/instrutor/dupla no Painel de Registro).
+    function encontrosBlockHtml(tipo, grupoId, membros){
+      const encontros = (DB.encontros||[]).filter(e=>e.tipo===tipo && eqId(e.grupoId, grupoId));
+      const tituloBloco = tipo==='dupla' ? 'VISITAS / ESTUDOS' : 'CHAMADA';
+      const rotuloBtn = tipo==='dupla' ? 'Registrar visita' : 'Registrar';
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:15px 0 7px">
+          <span class="modal-sub-label">${tituloBloco}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px">
+          <input type="date" id="f-encontro-data" value="${todayStr()}" style="flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px">
+          <button class="btn btn-primary btn-sm" onclick="addEncontroCoord('${tipo}','${grupoId}')">${rotuloBtn}</button>
+        </div>
+        <p style="font-size:10.5px;color:var(--ink-soft);margin:0 0 8px">
+          ${icon('note',11)} Quando o líder, instrutor ou dupla registrar uma observação para um encontro, um ícone aparece ao lado da data abaixo — toque nele para ler.
+        </p>
+        ${buildFrequencyTable(
+          membros, encontros, DB.frequencia,
+          (encontroId)=>`openChamadaCoord('${tipo}','${grupoId}','${encontroId}')`,
+          (encontroId)=>`viewObsEncontro('${tipo}','${grupoId}','${encontroId}')`
+        )}
+      `;
+    }
+    window.addEncontroCoord = function(tipo, grupoId){
+      const data = document.getElementById('f-encontro-data').value.trim();
+      if(!data){ toast('Informe a data.', true); return; }
+      const id = uid();
+      DB.encontros.push({ id, tipo, grupoId, data, observacoes:'' });
+      persist('encontros');
+      toast(tipo==='dupla' ? 'Visita registrada. Agora marque quem foi visitado.' : 'Encontro registrado. Agora marque a chamada.');
+      openChamadaCoord(tipo, grupoId, id);
+    };
+    window.deleteEncontroCoord = function(id, tipo, grupoId){
+      if(!confirm('Excluir este encontro e toda a chamada dele?')) return;
+      DB.encontros = DB.encontros.filter(e=>!eqId(e.id, id));
+      DB.frequencia = DB.frequencia.filter(f=>!eqId(f.encontroId, id));
+      persist('encontros'); persist('frequencia');
+      toast('Removido.');
+      if(tipo==='dupla') openDuplaDetails(grupoId); else openGroupMembers(tipo, grupoId);
+    };
+    window.openChamadaCoord = function(tipo, grupoId, encontroId){
+      const membros = membrosDe(tipo, grupoId);
+      const freqMap = {};
+      (DB.frequencia||[]).filter(f=>eqId(f.encontroId, encontroId)).forEach(f=>{ freqMap[sid(f.membroId)] = f.presente; });
+      const enc = (DB.encontros||[]).find(e=>eqId(e.id, encontroId));
+      openModal(`
+        <h3>${tipo==='dupla'?'Visita':'Chamada'} — ${fmtDateBR(enc?enc.data:'')}</h3>
+        ${membros.length===0 ? '<p style="font-size:12px;color:var(--ink-soft)">Nenhum membro neste grupo.</p>' : `
+        <div style="max-height:300px;overflow-y:auto;margin-bottom:8px">
+          ${membros.map(m=>`
+            <div class="checkline" style="margin-bottom:6px">
+              <input type="checkbox" id="chk-${m.id}" ${freqMap[sid(m.id)]?'checked':''}>
+              <label for="chk-${m.id}">${esc(m.nome)}</label>
+            </div>`).join('')}
+        </div>`}
+        <div class="modal-actions">
+          <button class="btn btn-danger-ghost" onclick="deleteEncontroCoord('${encontroId}','${tipo}','${grupoId}')">Excluir</button>
+          <button class="btn btn-ghost" onclick="${tipo==='dupla'?`openDuplaDetails('${grupoId}')`:`openGroupMembers('${tipo}','${grupoId}')`}">Voltar</button>
+          <button class="btn btn-primary" onclick="saveChamadaCoord('${tipo}','${grupoId}','${encontroId}')">Salvar</button>
+        </div>
+      `);
+    };
+    window.saveChamadaCoord = function(tipo, grupoId, encontroId){
+      const membros = membrosDe(tipo, grupoId);
+      DB.frequencia = (DB.frequencia||[]).filter(f=>!eqId(f.encontroId, encontroId));
+      membros.forEach(m=>{
+        const el = document.getElementById('chk-'+m.id);
+        DB.frequencia.push({ id: uid(), encontroId, membroId: m.id, presente: el ? el.checked : false });
+      });
+      persist('frequencia');
+      toast('Salvo.');
+      if(tipo==='dupla') openDuplaDetails(grupoId); else openGroupMembers(tipo, grupoId);
+    };
+
+    function professoresSection(){
+      const addBtn = `<button class="btn btn-primary" onclick="openProfessorForm()">${icon('plus',15)} Novo Professor</button>`;
+      if(DB.professores.length===0){
+        return `
+          <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+          <div class="empty"><div class="ic">${icon('teacher',32)}</div><h4>Nenhum professor cadastrado</h4></div>`;
+      }
+      const areaLabel = {pg:'PG', classe:'Classe Bíblica', escola:'Escola de Evangelismo'};
+      return `
+        <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+        <table>
+          <thead><tr><th>Nome</th><th>Área</th><th>Grupo</th><th>Telefone</th><th></th></tr></thead>
+          <tbody>
+            ${DB.professores.map(p=>{
+              const listMap = {pg:DB.pgs, classe:DB.classes, escola:DB.escolas};
+              const g = p.grupoId ? listMap[p.area].find(x=>eqId(x.id, p.grupoId)) : null;
+              return `<tr>
+                <td data-label="Nome">${esc(p.nome)}</td>
+                <td data-label="Área"><span class="badge badge-neutral">${areaLabel[p.area]}</span></td>
+                <td data-label="Grupo">${g?esc(g.nome):'—'}</td>
+                <td data-label="Telefone">${esc(p.telefone||'—')}</td>
+                <td><div class="row-actions">
+                  <button class="icon-btn" onclick="openProfessorForm(null,null,'${p.id}')">Editar</button>
+                  <button class="icon-btn" onclick="deleteProfessor('${p.id}')">Remover</button>
+                </div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    window.openProfessorForm = function(fixedArea, fixedGrupoId, profId){
+      const item = profId ? DB.professores.find(p=>eqId(p.id, profId)) : null;
+      const area = fixedArea || (item && item.area) || 'pg';
+      const groupOptions = (a) => {
+        const listMap = {pg:DB.pgs, classe:DB.classes, escola:DB.escolas};
+        return listMap[a].map(g=>`<option value="${g.id}" ${((item&&eqId(item.grupoId, g.id))||eqId(fixedGrupoId, g.id))?'selected':''}>${esc(g.nome)}</option>`).join('');
+      };
+      openModal(`
+        <h3>${item?'Editar professor':'Novo professor'}</h3>
+        <div class="field"><label>Nome completo</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>Área de atuação</label>
+          <select id="f-area" ${fixedArea?'disabled':''} onchange="refreshProfGroupOptions()">
+            <option value="pg" ${area==='pg'?'selected':''}>Pequeno Grupo</option>
+            <option value="classe" ${area==='classe'?'selected':''}>Classe Bíblica</option>
+            <option value="escola" ${area==='escola'?'selected':''}>Escola de Evangelismo</option>
+          </select>
+        </div>
+        <div class="field"><label>Grupo vinculado (opcional)</label>
+          <select id="f-grupo" ${fixedGrupoId?'disabled':''}>
+            <option value="">—</option>
+            ${groupOptions(area)}
+          </select>
+        </div>
+        <div class="field"><label>Telefone</label><input type="tel" id="f-tel" value="${item?esc(item.telefone||''):''}"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveProfessor('${profId||''}','${fixedArea||''}','${fixedGrupoId||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.refreshProfGroupOptions = function(){
+      const a = document.getElementById('f-area').value;
+      const listMap = {pg:DB.pgs, classe:DB.classes, escola:DB.escolas};
+      document.getElementById('f-grupo').innerHTML = '<option value="">—</option>' +
+        listMap[a].map(g=>`<option value="${g.id}">${esc(g.nome)}</option>`).join('');
+    };
+
+    window.saveProfessor = function(profId, fixedArea, fixedGrupoId){
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe o nome do professor.', true); return; }
+      const area = fixedArea || document.getElementById('f-area').value;
+      const grupoId = fixedGrupoId || document.getElementById('f-grupo').value || null;
+      const telefone = document.getElementById('f-tel').value.trim();
+      if(profId){
+        Object.assign(DB.professores.find(p=>eqId(p.id, profId)), {nome, area, grupoId, telefone});
+      } else {
+        DB.professores.push({ id: uid(), nome, area, grupoId, telefone });
+      }
+      persist('professores');
+      closeModal();
+      toast('Professor salvo.');
+      if(fixedGrupoId) openGroupMembers(fixedArea, fixedGrupoId); else render();
+    };
+
+    window.deleteProfessor = function(id){
+      if(!confirm('Remover este professor?')) return;
+      const wasGrouped = DB.professores.find(p=>eqId(p.id, id));
+      DB.professores = DB.professores.filter(p=>!eqId(p.id, id));
+      persist('professores');
+      toast('Removido.');
+      if(wasGrouped && wasGrouped.grupoId) openGroupMembers(wasGrouped.area, wasGrouped.grupoId); else render();
+    };
+
+    function viewInteressados(){
+      const lista = naoBatizados();
+      const grupos = lista.filter(m=>m.origem!=='avulso');
+      const avulsos = lista.filter(m=>m.origem==='avulso');
+
+      return `
+        <div class="section-head">
+          <h2>Interessados</h2>
+          <button class="btn btn-primary" onclick="openInteressadoForm()">${icon('plus',15)} Novo</button>
+        </div>
+
+        <div class="stats-strip" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+          <div class="item"><div class="n">${lista.length}</div><div class="l">Total</div></div>
+          <div class="item"><div class="n">${grupos.length}</div><div class="l">De grupos</div></div>
+          <div class="item"><div class="n">${avulsos.length}</div><div class="l">Avulsos</div></div>
+        </div>
+
+        ${lista.length===0 ? `
+          <div class="empty"><div class="ic">${icon('search',32)}</div><h4>Nenhum interessado no momento</h4></div>
+        ` : `
+          ${DB.duplas.length===0 ? `<div class="notice">Cadastre uma dupla em Ministério Pessoal → Duplas para poder atribuir interessados a elas.</div>` : ''}
+          <table>
+            <thead><tr><th>Nome</th><th>Origem</th><th>Telefone</th><th>Dupla</th><th></th></tr></thead>
+            <tbody>
+              ${lista.map(m=>`
+                <tr>
+                  <td data-label="Nome">${esc(m.nome)}${memberObsIconHtml(m)}</td>
+                  <td data-label="Origem"><span class="badge badge-neutral">${esc(origemLabel(m))}</span></td>
+                  <td data-label="Telefone">${esc(m.telefone||'—')}</td>
+                  <td data-label="Dupla">
+                    ${DB.duplas.length===0 ? '—' : `
+                      <select class="inline-select" onchange="assignDupla('${m.id}', this.value)">
+                        <option value="">—</option>
+                        ${DB.duplas.map(d=>`<option value="${d.id}" ${eqId(m.duplaId, d.id)?'selected':''}>${esc(d.nome1)} &amp; ${esc(d.nome2)}</option>`).join('')}
+                      </select>`}
+                  </td>
+                  <td><div class="row-actions">
+                    <button class="icon-btn" onclick="openInteressadoForm('${m.id}')">Editar</button>
+                    <button class="icon-btn" onclick="registrarBatismo('${m.id}')">Batismo</button>
+                  </div></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        `}
+      `;
+    }
+
+    window.openInteressadoForm = function(memberId){
+      const item = memberId ? DB.membros.find(m=>eqId(m.id, memberId)) : null;
+      openModal(`
+        <h3>${item?'Editar interessado':'Novo interessado'}</h3>
+        <div class="field"><label>Nome completo</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>Telefone</label><input type="tel" id="f-tel" value="${item?esc(item.telefone||''):''}"></div>
+        <div class="field"><label>Observações</label><textarea id="f-obs">${item?esc(item.observacoes||''):''}</textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveInteressado('${memberId||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.saveInteressado = function(memberId){
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe o nome.', true); return; }
+      const telefone = document.getElementById('f-tel').value.trim();
+      const observacoes = document.getElementById('f-obs').value.trim();
+      if(memberId){
+        Object.assign(DB.membros.find(m=>eqId(m.id, memberId)), {nome, telefone, observacoes});
+      } else {
+        DB.membros.push({ id: uid(), nome, telefone, observacoes, origem:'avulso', grupoId:null, duplaId:null, batizado:false, dataBatismo:null });
+      }
+      persist('membros');
+      closeModal();
+      toast('Salvo.');
+      render();
+    };
+
+    window.registrarBatismo = function(memberId){
+      if(!confirm('Confirmar batismo desta pessoa?')) return;
+      const m = DB.membros.find(x=>eqId(x.id, memberId));
+      m.batizado = true;
+      m.dataBatismo = todayStr();
+      persist('membros');
+      toast('Batismo registrado.');
+      render();
+    };
+
+    function viewMinisterio(){
+      const tab = state.tab || 'duplas';
+      const tabs = [
+        {id:'duplas', label:'Duplas'},
+        {id:'classes', label:'Classes Bíblicas'},
+        {id:'escolas', label:'Escola de Evangelismo'},
+        {id:'professores', label:'Professores'},
+        {id:'interessados', label:'Interessados'},
+      ];
+      let content;
+      if(tab==='duplas') content = duplasSection();
+      else if(tab==='classes') content = groupListSection('classe', DB.classes, {
+        icon:'book', addLabel:'Nova Classe',
+        labels:{nome:'Nome da classe', lider:'Instrutor responsável', dia:'Dia e horário', local:'Local'}
+      });
+      else if(tab==='escolas') content = groupListSection('escola', DB.escolas, {
+        icon:'graduate', addLabel:'Nova Turma',
+        labels:{nome:'Nome da turma', lider:'Coordenador da turma', dia:'Dia e horário', local:'Local'}
+      });
+      else if(tab==='professores') content = professoresSection();
+      else content = interessadosMinisterioSection();
+
+      return `
+        <div class="section-head"><h2>Ministério Pessoal</h2></div>
+        <div class="tabs">
+          ${tabs.map(t=>`<button class="tab ${tab===t.id?'active':''}" onclick="go('ministerio','${t.id}')">${t.label}</button>`).join('')}
+        </div>
+        ${content}
+      `;
+    }
+
+    function duplasSection(){
+      const addBtn = `<button class="btn btn-primary" onclick="openDuplaForm()">${icon('plus',15)} Nova Dupla</button>`;
+      if(DB.duplas.length===0){
+        return `
+          <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+          <div class="empty"><div class="ic">${icon('handshake',32)}</div><h4>Nenhuma dupla cadastrada</h4></div>`;
+      }
+      return `
+        <div class="section-head" style="margin-bottom:12px"><div></div>${addBtn}</div>
+        <div class="card-grid">
+          ${DB.duplas.map(d=>{
+            const vinc = DB.membros.filter(m=>eqId(m.duplaId, d.id));
+            return `
+            <div class="card">
+              <h3>${esc(d.nome1)} &amp; ${esc(d.nome2)}</h3>
+              <div class="meta">${esc(d.area||'—')} · ${esc(d.dia||'—')}</div>
+              ${(d.telefone1||d.telefone2) ? `<div class="meta">
+                ${d.telefone1?icon('phone',10)+' '+esc(d.nome1)+': '+esc(d.telefone1):''}${(d.telefone1&&d.telefone2)?' · ':''}${d.telefone2?icon('phone',10)+' '+esc(d.nome2)+': '+esc(d.telefone2):''}
+              </div>` : ''}
+              <div class="meta" style="margin-top:6px">
+                <span class="badge ${d.senha ? 'badge-lock-ok' : 'badge-lock-warn'}">${icon('lock',11)} ${d.senha ? 'Senha configurada' : 'Sem senha — Registro bloqueado'}</span>
+              </div>
+              <div class="card-foot">
+                <span class="count-pill">${vinc.length} interessado${vinc.length===1?'':'s'}</span>
+                <div class="card-actions">
+                  <button class="icon-btn" onclick="openDuplaForm('${d.id}')">Editar</button>
+                  <button class="icon-btn" onclick="deleteDupla('${d.id}')">Excluir</button>
+                </div>
+              </div>
+              <div style="margin-top:9px">
+                <button class="btn btn-ghost btn-sm btn-full" onclick="openDuplaDetails('${d.id}')">Ver detalhes →</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+
+    window.openDuplaForm = function(id){
+      const item = id ? DB.duplas.find(d=>eqId(d.id, id)) : null;
+      openModal(`
+        <h3>${item?'Editar dupla':'Nova dupla missionária'}</h3>
+        <div class="field"><label>Nome do 1º missionário</label><input type="text" id="f-n1" value="${item?esc(item.nome1):''}"></div>
+        <div class="field"><label>Telefone do 1º missionário</label><input type="tel" id="f-tel1" value="${item?esc(item.telefone1||''):''}" placeholder="(69) 9xxxx-xxxx"></div>
+        <div class="field"><label>Nome do 2º missionário</label><input type="text" id="f-n2" value="${item?esc(item.nome2||''):''}"></div>
+        <div class="field"><label>Telefone do 2º missionário</label><input type="tel" id="f-tel2" value="${item?esc(item.telefone2||''):''}" placeholder="(69) 9xxxx-xxxx"></div>
+        <div class="field"><label>Área / região de atuação</label><input type="text" id="f-area" value="${item?esc(item.area||''):''}"></div>
+        <div class="field"><label>Dia de visitação</label><input type="text" id="f-dia" value="${item?esc(item.dia||''):''}" placeholder="Ex: Sábados à tarde"></div>
+        <div class="field">
+          <label>Senha de acesso da dupla${item?' <span style="font-weight:400">(deixe em branco para manter a atual)</span>':''}</label>
+          <input type="password" id="f-senha" placeholder="${item ? (item.senha?'••••••• já configurada':'ainda não configurada — defina uma') : 'mínimo 4 caracteres'}">
+          <span class="hint">Essa é a senha que a dupla usará no Painel de Registro para registrar visitas e estudos.</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveDupla('${id||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-n1').focus();
+    };
+
+    window.saveDupla = async function(id){
+      const nome1 = document.getElementById('f-n1').value.trim();
+      if(!nome1){ toast('Informe ao menos o nome do 1º missionário.', true); return; }
+      const pwRaw = document.getElementById('f-senha').value.trim();
+      if(!id && !pwRaw){ toast('Defina uma senha de acesso para esta dupla — ela será usada no Painel de Registro.', true); return; }
+      const data = {
+        nome1,
+        telefone1: document.getElementById('f-tel1').value.trim(),
+        nome2: document.getElementById('f-n2').value.trim(),
+        telefone2: document.getElementById('f-tel2').value.trim(),
+        area: document.getElementById('f-area').value.trim(),
+        dia: document.getElementById('f-dia').value.trim(),
+      };
+      if(pwRaw){
+        try{ data.senha = await gsRun('hashGroupPassword', pwRaw); }
+        catch(err){ toast(err.message || 'Senha inválida (mínimo 4 caracteres).', true); return; }
+      }
+      if(id){ Object.assign(DB.duplas.find(d=>eqId(d.id, id)), data); }
+      else { DB.duplas.push({ id: uid(), ...data }); }
+      persist('duplas');
+      closeModal();
+      toast('Dupla salva.');
+      render();
+    };
+
+    window.deleteDupla = function(id){
+      if(!confirm('Excluir esta dupla?')) return;
+      DB.duplas = DB.duplas.filter(d=>!eqId(d.id, id));
+      DB.membros.forEach(m => { if(eqId(m.duplaId, id)) m.duplaId=null; });
+      const removedEncontroIds = (DB.encontros||[]).filter(e=>e.tipo==='dupla' && eqId(e.grupoId, id)).map(e=>e.id);
+      DB.encontros = (DB.encontros||[]).filter(e=>!(e.tipo==='dupla' && eqId(e.grupoId, id)));
+      DB.frequencia = (DB.frequencia||[]).filter(f=>!removedEncontroIds.some(rid=>eqId(f.encontroId, rid)));
+      persist('duplas'); persist('membros'); persist('encontros'); persist('frequencia');
+      toast('Excluída.');
+      render();
+    };
+
+    // Detalhes de uma dupla — segue exatamente o mesmo padrão de PG/Classe/
+    // Escola (openGroupMembers): lista de pessoas vinculadas, com botão para
+    // adicionar/editar, seguida do bloco de chamada (encontrosBlockHtml, que
+    // sempre renderiza a tabela de frequência via buildFrequencyTable, com o
+    // ícone de observação incluso).
+    window.openDuplaDetails = function(duplaId){
+      const d = DB.duplas.find(x=>eqId(x.id, duplaId));
+      const membros = membrosDe('dupla', duplaId);
+      openModal(`
+        <h3>${esc(d.nome1)} &amp; ${esc(d.nome2)}</h3>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:4px">${esc(d.area||'')} ${d.dia?'· '+esc(d.dia):''}</p>
+        ${(d.telefone1||d.telefone2) ? `<p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:8px">
+          ${d.telefone1?icon('phone',10)+' '+esc(d.nome1)+': '+esc(d.telefone1):''}${(d.telefone1&&d.telefone2)?' &nbsp;·&nbsp; ':''}${d.telefone2?icon('phone',10)+' '+esc(d.nome2)+': '+esc(d.telefone2):''}
+        </p>` : ''}
+        <div style="margin-bottom:13px">
+          <span class="badge ${d.senha ? 'badge-lock-ok' : 'badge-lock-warn'}">${icon('lock',11)} ${d.senha ? 'Senha configurada' : 'Sem senha — Registro bloqueado'}</span>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+          <span class="modal-sub-label">INTERESSADOS VINCULADOS (${membros.length})</span>
+          <button class="btn btn-primary btn-sm" onclick="openMemberFormDupla('${duplaId}')">+ Interessado</button>
+        </div>
+        ${membros.length===0 ? '<p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:8px">Nenhum interessado vinculado ainda. Adicione aqui, ou vincule um já cadastrado pela aba Interessados.</p>' :
+          `<div style="margin-bottom:8px">${membros.map(m=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:8px">
+              <div>
+                <div style="font-size:12.5px;font-weight:600">${esc(m.nome)}${memberObsIconHtml(m)}</div>
+                <div style="font-size:10.5px;color:var(--ink-soft)">${esc(m.telefone||'—')}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+                <span class="badge ${m.batizado?'badge-baptized':'badge-interest'}">${m.batizado?'Batizado':'Interessado'}</span>
+                <button class="icon-btn" onclick="openMemberFormDupla('${duplaId}','${m.id}')">Editar</button>
+              </div>
+            </div>`).join('')}</div>`
+        }
+        ${encontrosBlockHtml('dupla', duplaId, membros)}
+        <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+      `);
+    };
+
+    // Formulário de interessado vinculado diretamente a uma dupla (o
+    // coordenador cadastra/edita sem precisar passar pela aba Interessados
+    // e reatribuir manualmente) — mesma cara do formulário usado para
+    // PG/Classe/Escola, mas gravando via duplaId em vez de origem+grupoId,
+    // para casar com o modelo usado por getGroupMembers/membrosDe('dupla',…).
+    window.openMemberFormDupla = function(duplaId, memberId){
+      const item = memberId ? DB.membros.find(m=>eqId(m.id, memberId)) : null;
+      openModal(`
+        <h3>${item?'Editar interessado':'Novo interessado'}</h3>
+        <div class="field"><label>Nome completo</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>Telefone</label><input type="tel" id="f-tel" value="${item?esc(item.telefone||''):''}"></div>
+        <div class="field checkline">
+          <input type="checkbox" id="f-batizado" ${item&&item.batizado?'checked':''}>
+          <label for="f-batizado">Já é batizado(a)</label>
+        </div>
+        <div class="field"><label>Observações</label><textarea id="f-obs" placeholder="Ex: pediu oração pela família, prefere estudar à noite, já leu parte de Mateus...">${item?esc(item.observacoes||''):''}</textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveMemberDupla('${duplaId}','${memberId||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.saveMemberDupla = function(duplaId, memberId){
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe o nome.', true); return; }
+      const data = {
+        nome,
+        telefone: document.getElementById('f-tel').value.trim(),
+        batizado: document.getElementById('f-batizado').checked,
+        observacoes: document.getElementById('f-obs').value.trim(),
+      };
+      if(memberId){
+        const m = DB.membros.find(x=>eqId(x.id, memberId));
+        Object.assign(m, data);
+        if(data.batizado && !m.dataBatismo) m.dataBatismo = todayStr();
+        if(!data.batizado) m.dataBatismo = null;
+      } else {
+        DB.membros.push({
+          id: uid(), origem:'avulso', grupoId:null, duplaId: duplaId,
+          dataBatismo: data.batizado ? todayStr() : null,
+          observacoes:'', ...data
+        });
+      }
+      persist('membros');
+      closeModal();
+      toast('Salvo.');
+      openDuplaDetails(duplaId);
+    };
+
+    function interessadosMinisterioSection(){
+      const lista = naoBatizados();
+      if(lista.length===0){
+        return `<div class="empty"><div class="ic">${icon('search',32)}</div><h4>Nenhum interessado cadastrado</h4></div>`;
+      }
+      if(DB.duplas.length===0){
+        return `<div class="notice">Cadastre uma dupla na aba "Duplas" para vincular interessados.</div>` + interessadosTable(lista, false);
+      }
+      return interessadosTable(lista, true);
+    }
+
+    function interessadosTable(lista, allowAssign){
+      return `
+        <table>
+          <thead><tr><th>Nome</th><th>Origem</th><th>Telefone</th><th>Dupla</th></tr></thead>
+          <tbody>
+            ${lista.map(m=>`
+              <tr>
+                <td data-label="Nome">${esc(m.nome)}${memberObsIconHtml(m)}</td>
+                <td data-label="Origem"><span class="badge badge-neutral">${esc(origemLabel(m))}</span></td>
+                <td data-label="Telefone">${esc(m.telefone||'—')}</td>
+                <td data-label="Dupla">
+                  ${allowAssign ? `
+                    <select class="inline-select" onchange="assignDupla('${m.id}', this.value)">
+                      <option value="">—</option>
+                      ${DB.duplas.map(d=>`<option value="${d.id}" ${eqId(m.duplaId, d.id)?'selected':''}>${esc(d.nome1)} &amp; ${esc(d.nome2)}</option>`).join('')}
+                    </select>
+                  ` : '—'}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    window.assignDupla = function(memberId, duplaId){
+      const m = DB.membros.find(x=>eqId(x.id, memberId));
+      m.duplaId = duplaId || null;
+      persist('membros');
+      toast('Atualizado.');
+    };
+
+    // ================= RELATÓRIO MISSIONÁRIO INTEGRADO =================
+    // Junta PGs, Classes Bíblicas, Escolas de Evangelismo e Duplas
+    // Missionárias num único relatório, inspirado no modelo em papel usado
+    // pela igreja: uma grade por grupo com o nome de cada pessoa numa linha
+    // e uma coluna por encontro/estudo (numerada 1, 2, 3…) marcada com "x"
+    // quando houve presença — mais um cabeçalho com os totais do grupo
+    // (nº de responsáveis, nº de estudantes/membros) e um rodapé com os
+    // percentuais de envolvimento, do jeito que o relatório em papel fecha
+    // com "X% da comissão / dos membros envolvida em estudo bíblico".
+
+    const REPORT_LABELS = {
+      dupla:  { titulo:'Duplas Missionárias', respLabel:'Missionários', pessoaLabel:'Interessado', vazio:'Nenhuma dupla cadastrada.' },
+      pg:     { titulo:'Pequenos Grupos',      respLabel:'Líder',        pessoaLabel:'Membro',      vazio:'Nenhum PG cadastrado.' },
+      classe: { titulo:'Classes Bíblicas',     respLabel:'Instrutor',    pessoaLabel:'Aluno',       vazio:'Nenhuma classe cadastrada.' },
+      escola: { titulo:'Escola de Evangelismo',respLabel:'Coordenador',  pessoaLabel:'Aluno',       vazio:'Nenhuma turma cadastrada.' },
+    };
+
+    // Monta a grade de um único grupo (uma dupla, um PG, uma classe...):
+    // cabeçalho com colunas numeradas 1..N (uma por encontro, em ordem
+    // cronológica) e uma linha por pessoa com "x" nos encontros em que
+    // esteve presente — igual ao papel usado hoje pela igreja.
+    function reportGroupGrid(tipo, grupo){
+      const membros = membrosDe(tipo, grupo.id);
+      const encontros = [...(DB.encontros||[])].filter(e=>e.tipo===tipo && eqId(e.grupoId, grupo.id))
+        .sort((a,b)=> (a.data < b.data ? -1 : 1));
+      const freqMap = {};
+      (DB.frequencia||[]).forEach(f=>{
+        const eId = sid(f.encontroId);
+        if(!freqMap[eId]) freqMap[eId] = {};
+        freqMap[eId][sid(f.membroId)] = f.presente;
+      });
+      const totalPorMembro = (membroId) => encontros.reduce((n,e)=>{
+        const p = freqMap[sid(e.id)] ? !!freqMap[sid(e.id)][sid(membroId)] : false;
+        return n + (p?1:0);
+      }, 0);
+
+      if(membros.length===0){
+        return `<p style="font-size:11.5px;color:var(--ink-soft);padding:8px 0">Nenhuma pessoa cadastrada neste grupo.</p>`;
+      }
+      if(encontros.length===0){
+        return `<p style="font-size:11.5px;color:var(--ink-soft);padding:8px 0">Nenhum encontro registrado ainda — a grade aparece aqui assim que houver ao menos um.</p>`;
+      }
+      return `
+        <div class="freq-table-wrap">
+          <table class="freq-table report-grid">
+            <thead><tr>
+              <th>${REPORT_LABELS[tipo].pessoaLabel}</th>
+              <th>Nº estudos</th>
+              ${encontros.map((e,i)=>`<th title="${fmtDateBR(e.data)}">${i+1}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${membros.map(m=>`
+                <tr>
+                  <td>${esc(m.nome)}</td>
+                  <td class="report-total">${totalPorMembro(m.id)}</td>
+                  ${encontros.map(e=>{
+                    const present = freqMap[sid(e.id)] ? !!freqMap[sid(e.id)][sid(m.id)] : false;
+                    return `<td class="${present?'freq-present':'freq-absent'}">${present?icon('check',12):'–'}</td>`;
+                  }).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    // Cabeçalho de resumo de um grupo (equivalente às colunas "Nº Miss. /
+    // Missionários / Impactos / Nº Estudantes" do relatório em papel):
+    // quantos responsáveis, quantos encontros já feitos e quantas pessoas
+    // estão sendo acompanhadas.
+    function reportGroupCard(tipo, grupo){
+      const membros = membrosDe(tipo, grupo.id);
+      const encontros = (DB.encontros||[]).filter(e=>e.tipo===tipo && eqId(e.grupoId, grupo.id));
+      const nomeGrupo = tipo==='dupla' ? (esc(grupo.nome1) + (grupo.nome2 ? ' &amp; ' + esc(grupo.nome2) : '')) : esc(grupo.nome);
+      const nMissionarios = tipo==='dupla' ? (grupo.nome2 ? 2 : 1) : null;
+      return `
+        <div class="report-group">
+          <div class="report-group-head">
+            <div>
+              <h4>${nomeGrupo}</h4>
+              <div class="meta">
+                ${tipo!=='dupla' ? `${REPORT_LABELS[tipo].respLabel}: ${esc(grupo.lider||'—')} · ` : ''}
+                ${nMissionarios!==null ? `${nMissionarios} missionário${nMissionarios>1?'s':''} · ` : ''}
+                ${encontros.length} encontro${encontros.length===1?'':'s'} registrado${encontros.length===1?'':'s'} ·
+                ${membros.length} ${REPORT_LABELS[tipo].pessoaLabel.toLowerCase()}${membros.length===1?'':'s'}
+              </div>
+            </div>
+          </div>
+          ${reportGroupGrid(tipo, grupo)}
+        </div>`;
+    }
+
+    function reportSection(tipo, list){
+      const cfg = REPORT_LABELS[tipo];
+      if(list.length===0){
+        return `<h3 class="report-section-title">${cfg.titulo}</h3><p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:16px">${cfg.vazio}</p>`;
+      }
+      return `
+        <h3 class="report-section-title">${cfg.titulo}</h3>
+        ${list.map(g=>reportGroupCard(tipo, g)).join('')}
+      `;
+    }
+
+    // Percentuais do rodapé, no mesmo espírito do relatório em papel
+    // ("50% da comissão envolvida em estudo bíblico" / "30% dos membros
+    // envolvida em estudo bíblico"): aqui calculados sobre os dados reais
+    // do sistema — % de duplas com pelo menos um encontro registrado, e %
+    // do total de interessados (não batizados) que já têm ao menos um
+    // estudo/encontro registrado com alguma dupla.
+    function reportFooterStats(){
+      const duplasComEncontro = DB.duplas.filter(d => (DB.encontros||[]).some(e=>e.tipo==='dupla' && eqId(e.grupoId, d.id))).length;
+      const pctDuplasAtivas = DB.duplas.length ? Math.round(100*duplasComEncontro/DB.duplas.length) : 0;
+
+      const interessados = naoBatizados();
+      const idsComEstudo = new Set((DB.frequencia||[]).filter(f=>f.presente).map(f=>sid(f.membroId)));
+      const interessadosComEstudo = interessados.filter(m=>idsComEstudo.has(sid(m.id))).length;
+      const pctInteressadosComEstudo = interessados.length ? Math.round(100*interessadosComEstudo/interessados.length) : 0;
+
+      return `
+        <div class="report-stats">
+          <div class="report-stat"><div class="n">${pctDuplasAtivas}%</div><div class="l">das duplas com estudo em andamento</div></div>
+          <div class="report-stat"><div class="n">${pctInteressadosComEstudo}%</div><div class="l">dos interessados com ao menos um estudo registrado</div></div>
+          <div class="report-stat"><div class="n">${batizados().length}</div><div class="l">batismos no período</div></div>
+        </div>`;
+    }
+
+    function viewRelatorio(){
+      const agora = new Date();
+      const geradoEm = fmtDateBR(agora.toISOString().slice(0,10)) + ' às ' + agora.toTimeString().slice(0,5);
+      return `
+        <div class="section-head report-toolbar">
+          <h2>Relatório Missionário Integrado</h2>
+          <button class="btn btn-primary" onclick="window.print()">${icon('print',15)} Imprimir / Salvar PDF</button>
+        </div>
+        <p style="font-size:11px;color:var(--ink-soft);margin-bottom:18px" class="report-only-screen">
+          Reúne PGs, Classes Bíblicas, Escola de Evangelismo e Duplas Missionárias num único relatório, com uma grade de presença por pessoa (igual ao modelo em papel) e os percentuais de envolvimento no rodapé.
+          Use "Imprimir / Salvar PDF" para gerar um arquivo pronto para compartilhar ou arquivar.
+        </p>
+
+        <div class="report-print-head">
+          <h1>Relatório Missionário</h1>
+          <p>IASD Nova Brasília · gerado em ${geradoEm}</p>
+        </div>
+
+        ${reportSection('dupla', DB.duplas)}
+        ${reportSection('pg', DB.pgs)}
+        ${reportSection('classe', DB.classes)}
+        ${reportSection('escola', DB.escolas)}
+
+        ${reportFooterStats()}
+      `;
+    }
+
+    function registroTopbar(){
+      return `
+        <div class="topbar">
+          <button class="hamburger" onclick="registroBack()">${icon('back',20)}</button>
+          <div class="brand-compact"><div class="brand-mark">NB</div><h1>Painel de Registro</h1></div>
+        </div>`;
+    }
+
+    window.registroBack = function(){
+      if(state.registroStage==='panel'){
+        state.registroStage = 'group'; state.registroGroupId = null; state.registroPw = null;
+        state.registroScoped = null; state.registroEncontros = null; state.registroFrequencia = null;
+      } else if(state.registroStage==='auth'){
+        state.registroStage = 'group'; state.registroGroupId = null; state.registroPw = null;
+      } else if(state.registroStage==='group'){
+        state.registroStage = 'role'; state.registroRole = null; state.allPgLocations = null;
+      } else {
+        state.area = null;
+      }
+      render();
+    };
+
+    function registroBody(){
+      if(state.loading) return loadingScreen();
+      if(state.registroStage==='role') return registroRoleScreen();
+      if(state.registroStage==='group') return registroGroupScreen();
+      if(state.registroStage==='auth') return registroAuthScreen();
+      return registroPanelScreen();
+    }
+
+    function registroRoleScreen(){
+      return `
+        <div class="hero"><h2>Quem é você?</h2></div>
+        <div class="quick-grid">
+          <button class="quick-card" onclick="selectRegistroRole('pg')"><div class="ic">${icon('groups',18)}</div><h3>Líder de PG</h3></button>
+          <button class="quick-card" onclick="selectRegistroRole('classe')"><div class="ic">${icon('book',18)}</div><h3>Instrutor de Classe Bíblica</h3></button>
+          <button class="quick-card" onclick="selectRegistroRole('escola')"><div class="ic">${icon('graduate',18)}</div><h3>Instrutor de Escola de Evangelismo</h3></button>
+          <button class="quick-card" onclick="selectRegistroRole('dupla')"><div class="ic">${icon('outreach',18)}</div><h3>Dupla Missionária</h3></button>
+        </div>`;
+    }
+    window.selectRegistroRole = async function(role){
+      state.registroRole = role; state.registroStage = 'group';
+      if(role==='pg'){
+        state.loading = true; render();
+        try{ state.allPgLocations = await gsRun('getPgsLocations'); }
+        catch(err){ toast('Erro ao carregar mapa: ' + (err && err.message ? err.message : err), true); }
+        state.loading = false;
+      }
+      render();
+    };
+
+    function registroGroupScreen(){
+      const role = state.registroRole;
+      let items = [];
+      if(role==='pg') items = DIRECTORY.pgs.map(g=>({id:g.id, label:g.nome, temSenha:g.temSenha}));
+      else if(role==='classe') items = DIRECTORY.classes.map(g=>({id:g.id, label:g.nome, temSenha:g.temSenha}));
+      else if(role==='escola') items = DIRECTORY.escolas.map(g=>({id:g.id, label:g.nome, temSenha:g.temSenha}));
+      else items = DIRECTORY.duplas.map(d=>({id:d.id, label:d.nome1+' & '+d.nome2, temSenha:d.temSenha}));
+
+      const mapBlock = role==='pg' ? `
+        <div style="margin:18px 0 6px"><span class="modal-sub-label">MAPA DE TODOS OS PGs</span></div>
+        <p class="map-help">Localizações registradas pelos próprios líderes. Toque em um marcador para ver o nome do PG.</p>
+        <div id="map-all-pgs" class="map-box" style="margin-bottom:20px"></div>
+      ` : '';
+
+      if(items.length===0){
+        return `<div class="empty"><h4>Nenhum registro cadastrado ainda.</h4></div>${mapBlock}`;
+      }
+      return `
+        <div class="hero"><h2>Selecione o seu grupo</h2></div>
+        <div class="card-grid" style="margin-bottom:6px">
+          ${items.map(it=>`
+            <button class="quick-card" onclick="selectRegistroGroup('${it.id}')" style="flex-direction:column;align-items:flex-start;gap:5px">
+              <h3>${esc(it.label)}</h3>
+              ${it.temSenha===false ? `<span class="badge badge-lock-warn">${icon('lock',10)} sem senha ainda</span>` : ''}
+            </button>`).join('')}
+        </div>
+        ${mapBlock}`;
+    }
+
+    window.selectRegistroGroup = function(id){
+      state.registroGroupId = id;
+      state.registroStage = 'auth';
+      render();
+    };
+
+    function registroAuthScreen(){
+      const role = state.registroRole;
+      const dir = role==='pg' ? DIRECTORY.pgs : role==='classe' ? DIRECTORY.classes : role==='escola' ? DIRECTORY.escolas : DIRECTORY.duplas;
+      const g = dir.find(x=>eqId(x.id, state.registroGroupId));
+      const label = role==='dupla' ? (g ? g.nome1+' & '+g.nome2 : '') : (g?g.nome:'');
+      return `
+        <div class="auth-screen"><div class="auth-card">
+          <h2>${esc(label)}</h2>
+          <p style="font-size:12px;color:var(--ink-soft);margin:0 0 14px;text-align:center">Digite a senha ${role==='dupla'?'desta dupla':'deste grupo'}, definida pelo coordenador.</p>
+          <div class="field"><label>Senha ${role==='dupla'?'da dupla':'do grupo'}</label><input type="password" id="f-group-pw" onkeydown="if(event.key==='Enter')submitRegistroAuth()"></div>
+          <button class="btn btn-primary btn-full" onclick="submitRegistroAuth()">Entrar</button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="registroBack()">← Voltar</button>
+        </div></div>`;
+    }
+
+    window.submitRegistroAuth = async function(){
+      const pw = document.getElementById('f-group-pw').value;
+      if(!pw){ toast('Digite a senha.', true); return; }
+      state.loading = true; render();
+      try{
+        const ok = await gsRun('checkGroupPassword', state.registroRole, state.registroGroupId, pw);
+        if(!ok){
+          state.loading = false; render();
+          toast('Senha incorreta.', true);
+          return;
+        }
+        state.registroPw = pw;
+        state.registroScoped = await gsRun('getGroupMembers', state.registroRole, state.registroGroupId, pw);
+        state.registroEncontros = await gsRun('getEncontros', state.registroRole, state.registroGroupId, pw);
+        state.registroFrequencia = await gsRun('getFrequenciaGrupo', state.registroRole, state.registroGroupId, pw);
+        if(state.registroRole==='pg'){ state.allPgLocations = await gsRun('getPgsLocations'); }
+        state.registroStage = 'panel';
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+      state.loading = false; render();
+    };
+
+    function registroPanelScreen(){
+      return attendanceRegistroPanel();
+    }
+
+    // Painel de chamada/registro, reutilizado por Líder de PG, Instrutor de
+    // Classe Bíblica, Instrutor de Escola de Evangelismo e Dupla Missionária
+    // — todos seguem o mesmo modelo de tabela de frequência. Aqui não é
+    // passado o 5º argumento de buildFrequencyTable, então o ícone de
+    // observação nunca aparece nesta tela — comportamento intocado.
+    function attendanceRegistroPanel(){
+      const role = state.registroRole;
+      const dir = role==='pg' ? DIRECTORY.pgs : role==='classe' ? DIRECTORY.classes : role==='escola' ? DIRECTORY.escolas : DIRECTORY.duplas;
+      const g = dir.find(x=>eqId(x.id, state.registroGroupId));
+      const titulo = role==='dupla' ? (g ? g.nome1+' & '+g.nome2 : '') : (g?g.nome:'');
+      const membros = state.registroScoped || [];
+      const encontros = state.registroEncontros || [];
+      const roleLabel = role==='pg' ? 'Membros do PG' : role==='classe' ? 'Alunos da classe' : role==='escola' ? 'Alunos da turma' : 'Interessados vinculados';
+      const tituloNovo = role==='dupla' ? 'NOVA VISITA / ESTUDO' : 'NOVA CHAMADA';
+      const rotuloBtn = role==='dupla' ? 'Registrar visita' : 'Registrar chamada';
+      const rotuloObs = role==='dupla' ? 'Estudo / lição (opcional)' : 'Observações (opcional)';
+      const rotuloAdd = role==='dupla' ? 'Adicionar interessado' : 'Adicionar';
+      const semPessoasMsg = role==='dupla' ? 'Cadastre ao menos um interessado abaixo para poder registrar a visita.' : 'Cadastre ao menos uma pessoa abaixo para poder fazer a chamada.';
+
+      return `
+        <div class="hero"><h2>${esc(titulo)}</h2></div>
+
+        <div class="card" style="margin-bottom:16px">
+          <span class="modal-sub-label">${tituloNovo}</span>
+          <div class="field" style="margin-top:9px"><label>Data</label><input type="date" id="f-chamada-data" value="${todayStr()}"></div>
+          ${membros.length===0 ? `<p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:8px">${semPessoasMsg}</p>` : `
+          <div style="margin:8px 0">
+            ${membros.map(m=>`
+              <div class="checkline" style="margin-bottom:6px">
+                <input type="checkbox" id="chk-novo-${m.id}" checked>
+                <label for="chk-novo-${m.id}">${esc(m.nome)}</label>
+              </div>`).join('')}
+          </div>`}
+          <div class="field"><label>${rotuloObs}</label><textarea id="f-chamada-obs"></textarea></div>
+          <button class="btn btn-primary btn-full" onclick="submitChamada()" ${membros.length===0?'disabled':''}>${rotuloBtn}</button>
+        </div>
+
+        <span class="modal-sub-label">FREQUÊNCIA</span>
+        <p style="font-size:11px;color:var(--ink-soft);margin:6px 0 8px">Toque na data para ver ou editar o registro daquele dia.</p>
+        <div style="margin:0 0 22px">
+          ${buildFrequencyTable(membros, encontros, state.registroFrequencia, (encontroId)=>`openEditChamada('${encontroId}')`)}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 8px">
+          <span class="modal-sub-label">${roleLabel.toUpperCase()} (${membros.length})</span>
+          <button class="btn btn-primary btn-sm" onclick="openMemberFormRegistro()">${icon('plus',13)} ${rotuloAdd}</button>
+        </div>
+        <p style="font-size:11px;color:var(--ink-soft);margin-bottom:8px">Aqui você só vê o nome e a situação de cada pessoa. Telefones ficam visíveis apenas ao coordenador.</p>
+        ${membros.length===0 ? `<div class="empty"><h4>Ninguém cadastrado ainda.</h4></div>` :
+          `<div style="margin-bottom:8px">${membros.map(m=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:12.5px;font-weight:600">${esc(m.nome)}</span>
+                <span class="badge ${m.batizado?'badge-baptized':'badge-interest'}">${m.batizado?'Batizado':'Interessado'}</span>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn" onclick="openMemberFormRegistro('${m.id}')">Editar</button>
+                <button class="icon-btn" onclick="deleteMemberRegistroConfirm('${m.id}')">Excluir</button>
+              </div>
+            </div>`).join('')}</div>`}
+
+        ${role==='pg' ? `
+        <div style="margin:24px 0 6px"><span class="modal-sub-label">LOCALIZAÇÃO DO SEU PG NO MAPA</span></div>
+        <p class="map-help">Arraste o marcador até o local exato de encontro e clique em "Salvar localização". Se o PG for itinerante, volte aqui sempre que o local mudar.</p>
+        <div id="map-mine" class="map-box"></div>
+        <div style="display:flex;gap:8px;margin:10px 0 10px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="useMyLocation()">${icon('pin',13)} Usar minha localização atual</button>
+          <button class="btn btn-primary btn-sm" onclick="saveMyPgLocation()">Salvar localização</button>
+        </div>
+        <p class="map-help">O mapa com todos os PGs fica na tela anterior (seleção de grupo).</p>
+        ` : ''}
+      `;
+    }
+
+    window.submitChamada = async function(){
+      const data = document.getElementById('f-chamada-data').value.trim();
+      if(!data){ toast('Informe a data.', true); return; }
+      const observacoes = document.getElementById('f-chamada-obs').value.trim();
+      const membros = state.registroScoped || [];
+      const presencas = membros.map(m => ({ membroId: m.id, presente: !!(document.getElementById('chk-novo-'+m.id) && document.getElementById('chk-novo-'+m.id).checked) }));
+      try{
+        await gsRun('registrarChamada', state.registroRole, state.registroGroupId, data, observacoes, presencas, state.registroPw);
+        toast('Registrado.');
+        state.registroEncontros = await gsRun('getEncontros', state.registroRole, state.registroGroupId, state.registroPw);
+        state.registroFrequencia = await gsRun('getFrequenciaGrupo', state.registroRole, state.registroGroupId, state.registroPw);
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    window.removeChamada = async function(id){
+      if(!confirm('Excluir este registro?')) return;
+      try{
+        await gsRun('deleteEncontro', state.registroRole, state.registroGroupId, id, state.registroPw);
+        state.registroEncontros = await gsRun('getEncontros', state.registroRole, state.registroGroupId, state.registroPw);
+        state.registroFrequencia = await gsRun('getFrequenciaGrupo', state.registroRole, state.registroGroupId, state.registroPw);
+        toast('Excluído.');
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    window.openEditChamada = async function(encontroId){
+      try{
+        const freq = await gsRun('getFrequencia', state.registroRole, state.registroGroupId, encontroId, state.registroPw);
+        const freqMap = {};
+        freq.forEach(f => { freqMap[String(f.membroId)] = f.presente; });
+        const membros = state.registroScoped || [];
+        const e = (state.registroEncontros||[]).find(x=>eqId(x.id, encontroId));
+        openModal(`
+          <h3>${state.registroRole==='dupla'?'Visita':'Chamada'} — ${fmtDateBR(e?e.data:'')}</h3>
+          ${membros.length===0 ? '<p style="font-size:12px;color:var(--ink-soft)">Nenhuma pessoa cadastrada.</p>' : `
+          <div style="max-height:300px;overflow-y:auto;margin-bottom:8px">
+            ${membros.map(m=>`
+              <div class="checkline" style="margin-bottom:6px">
+                <input type="checkbox" id="chk-edit-${m.id}" ${freqMap[String(m.id)]?'checked':''}>
+                <label for="chk-edit-${m.id}">${esc(m.nome)}</label>
+              </div>`).join('')}
+          </div>`}
+          <div class="modal-actions">
+            <button class="btn btn-danger-ghost" onclick="closeModal();removeChamada('${encontroId}')">Excluir</button>
+            <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveEditChamada('${encontroId}')">Salvar</button>
+          </div>
+        `);
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+    window.saveEditChamada = async function(encontroId){
+      const membros = state.registroScoped || [];
+      const presencas = membros.map(m => ({ membroId: m.id, presente: !!(document.getElementById('chk-edit-'+m.id) && document.getElementById('chk-edit-'+m.id).checked) }));
+      try{
+        await gsRun('saveFrequencia', state.registroRole, state.registroGroupId, encontroId, presencas, state.registroPw);
+        state.registroFrequencia = await gsRun('getFrequenciaGrupo', state.registroRole, state.registroGroupId, state.registroPw);
+        closeModal();
+        toast('Atualizado.');
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    window.openMemberFormRegistro = function(memberId){
+      const item = memberId ? (state.registroScoped||[]).find(m=>eqId(m.id, memberId)) : null;
+      openModal(`
+        <h3>${item?'Editar':'Nova pessoa'}</h3>
+        <div class="field"><label>Nome completo</label><input type="text" id="f-nome" value="${item?esc(item.nome):''}"></div>
+        <div class="field"><label>Telefone${item?' <span style="font-weight:400">(deixe em branco para manter o já salvo)</span>':''}</label><input type="tel" id="f-tel" placeholder="${item?'não será alterado se deixado em branco':'(opcional)'}"></div>
+        <div class="field checkline">
+          <input type="checkbox" id="f-batizado" ${item&&item.batizado?'checked':''}>
+          <label for="f-batizado">Já é batizado(a)</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveMemberRegistro('${memberId||''}')">Salvar</button>
+        </div>
+      `);
+      document.getElementById('f-nome').focus();
+    };
+
+    window.saveMemberRegistro = async function(memberId){
+      const nome = document.getElementById('f-nome').value.trim();
+      if(!nome){ toast('Informe o nome.', true); return; }
+      const telefone = document.getElementById('f-tel').value.trim();
+      const batizado = document.getElementById('f-batizado').checked;
+      try{
+        if(memberId){
+          await gsRun('updateMemberRegistro', memberId, state.registroRole, state.registroGroupId, nome, telefone, batizado, state.registroPw);
+        } else {
+          await gsRun('addMemberRegistro', state.registroRole, state.registroGroupId, nome, telefone, batizado, state.registroPw);
+        }
+        state.registroScoped = await gsRun('getGroupMembers', state.registroRole, state.registroGroupId, state.registroPw);
+        closeModal();
+        toast('Salvo.');
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    window.deleteMemberRegistroConfirm = async function(memberId){
+      if(!confirm('Excluir esta pessoa?')) return;
+      try{
+        await gsRun('deleteMemberRegistro', memberId, state.registroRole, state.registroGroupId, state.registroPw);
+        state.registroScoped = await gsRun('getGroupMembers', state.registroRole, state.registroGroupId, state.registroPw);
+        toast('Excluído.');
+        render();
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    function initMyPgMap(){
+      if(typeof L === 'undefined') return;
+      const mineDiv = document.getElementById('map-mine');
+      if(!mineDiv || mineDiv._leaflet_id) return;
+      const g = DIRECTORY.pgs.find(x=>eqId(x.id, state.registroGroupId));
+      const start = (g && g.lat!=null && g.lng!=null) ? [g.lat, g.lng] : MAP_DEFAULT_CENTER;
+      const m = L.map(mineDiv).setView(start, (g && g.lat!=null) ? 15 : 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19
+      }).addTo(m);
+      const marker = L.marker(start, {draggable:true}).addTo(m);
+      m.on('click', e => marker.setLatLng(e.latlng));
+      window._myPgMarker = marker;
+      window._myPgMap = m;
+      setTimeout(()=>m.invalidateSize(), 60);
+    }
+
+    window.useMyLocation = function(){
+      if(!navigator.geolocation){ toast('Geolocalização não é suportada neste navegador.', true); return; }
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const ll = [pos.coords.latitude, pos.coords.longitude];
+        if(window._myPgMarker && window._myPgMap){
+          window._myPgMarker.setLatLng(ll);
+          window._myPgMap.setView(ll, 16);
+        }
+      }, () => toast('Não foi possível obter sua localização.', true));
+    };
+
+    window.saveMyPgLocation = async function(){
+      if(!window._myPgMarker){ toast('O mapa ainda não carregou.', true); return; }
+      const ll = window._myPgMarker.getLatLng();
+      try{
+        await gsRun('updateGroupLocation', 'pg', state.registroGroupId, ll.lat, ll.lng, state.registroPw);
+        const g = DIRECTORY.pgs.find(x=>eqId(x.id, state.registroGroupId));
+        if(g){ g.lat = ll.lat; g.lng = ll.lng; }
+        if(!state.allPgLocations) state.allPgLocations = [];
+        const found = state.allPgLocations.find(x=>eqId(x.id, state.registroGroupId));
+        if(found){ found.lat = ll.lat; found.lng = ll.lng; }
+        else if(g){ state.allPgLocations.push({ id:g.id, nome:g.nome, lider:g.lider, dia:g.dia, local:g.local, lat:ll.lat, lng:ll.lng }); }
+        toast('Localização salva.');
+      }catch(err){ toast('Erro: ' + (err && err.message ? err.message : err), true); }
+    };
+
+    boot();
+  })();
+  </script>
+</body>
+</html>

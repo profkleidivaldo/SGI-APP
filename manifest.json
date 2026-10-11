@@ -1,0 +1,17 @@
+{
+  "name": "Ministério Pessoal — IASD Nova Brasília",
+  "short_name": "Min. Pessoal",
+  "description": "Chamada e registro de PGs, Classes, Escolas e Duplas Missionárias, com modo offline.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F4F8",
+  "theme_color": "#053067",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
